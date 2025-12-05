@@ -8,11 +8,11 @@
 		<version>3.5.8</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>soas.currency-conversion</groupId>
-	<artifactId>currency-conversion</artifactId>
+	<groupId>soas.util</groupId>
+	<artifactId>util</artifactId>
 	<version>1.0.0</version>
-	<name>CurrencyConversion</name>
-	<description>Service for converting standard currencies</description>
+	<name>Util</name>
+	<description>Global exception handler</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -30,26 +30,11 @@
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
-	<dependency>
-	<groupId>soas.service-library</groupId>
-	<artifactId>service-library</artifactId>
-	<version>1.0.0</version>
-	</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		<dependency>
-		<groupId>soas.util</groupId>
-	<artifactId>util</artifactId>
-	<version>1.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

@@ -9,6 +9,7 @@ import org.springframework.web.client.RestTemplate;
 import api.dtos.CurrencyConversionDto;
 import api.dtos.CurrencyExchangeDto;
 import api.services.CurrencyConversionService;
+import util.exceptions.InvalidQuantityException;
 
 @RestController
 public class CurrencyConversionServiceImpl implements CurrencyConversionService {
@@ -17,6 +18,10 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
 	
 	@Override
 	public ResponseEntity<?> getConversion(String from, String to, BigDecimal quantity) {
+		
+		if(quantity.compareTo(BigDecimal.valueOf(300.0))==1) {
+			throw new InvalidQuantityException(String.format("Qunatity of %s is to large", quantity));
+		}
 		String endPoint ="http://localhost:8000/currency-exchange?from="+ from + "&to=" +to;
 	ResponseEntity<CurrencyExchangeDto>response = template.getForEntity(endPoint, CurrencyExchangeDto.class);
 	return ResponseEntity.ok(new CurrencyConversionDto(response.getBody(),quantity));

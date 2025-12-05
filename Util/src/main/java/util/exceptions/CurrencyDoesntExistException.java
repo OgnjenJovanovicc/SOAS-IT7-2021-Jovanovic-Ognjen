@@ -28,7 +28,5 @@ public class CurrencyDoesntExistException extends RuntimeException{
 		this.currencies = currencies;
 	}
 	
-	
-	
 
 }

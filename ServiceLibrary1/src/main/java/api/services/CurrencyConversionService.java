@@ -11,6 +11,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface CurrencyConversionService {
 
 	
-	@GetMapping("/currency-conversion")
+/*	@GetMapping("/currency-conversion-feign")
 	ResponseEntity<?> getConversion(@RequestParam String from, @RequestParam String to, @RequestParam BigDecimal quantity);
+	
+	@GetMapping("/currency-conversion")
+	ResponseEntity<?> getConversionFeign(@RequestParam String from, @RequestParam String to, @RequestParam BigDecimal quantity);*/
+	
+	@GetMapping("/currency-conversion")
+	ResponseEntity<?> getConversion(
+	        @RequestParam String from,
+	        @RequestParam String to,
+	        @RequestParam BigDecimal quantity);
+
+	@GetMapping("/currency-conversion-feign")
+	ResponseEntity<?> getConversionFeign(
+	        @RequestParam String from,
+	        @RequestParam String to,
+	        @RequestParam BigDecimal quantity);
 }

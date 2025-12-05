@@ -3,8 +3,10 @@ package currencyExchange;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 
 import api.dtos.CurrencyExchangeDto;
@@ -13,11 +15,14 @@ import util.exceptions.CurrencyDoesntExistException;
 import util.exceptions.NotDataFoundException;
 
 @RestController
+@Validated
 public class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 
 	@Autowired
 	private CurrencyExchangeRepository repo;
 	
+	@Autowired
+	private Environment enviroment;
 	@Override
 	public ResponseEntity<?> getCurrencyExchange(String from, String to) {
 		String missingCurrency=null;
@@ -37,6 +42,7 @@ public class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 					validCurencies);
 		}
 		CurrencyExchangeDto dto=new CurrencyExchangeDto(dbResponese.getTo(),dbResponese.getFrom(),dbResponese.getExchangeRate());
+		dto.setPort(enviroment.getProperty("local.server.port"));
 		return ResponseEntity.ok(dto);
 	}
 	

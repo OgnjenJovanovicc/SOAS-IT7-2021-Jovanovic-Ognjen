@@ -10,7 +10,7 @@ import api.dtos.CurrencyExchangeDto;
 public interface CurrencyExchangeProxy {
 	
 	@GetMapping("/currency-exchange")
-	ResponseEntity<CurrencyExchangeDto> getExchangeFeign(@RequestParam String from,  @RequestParam String to);
+	ResponseEntity<CurrencyExchangeDto> getExchangeFeign(@RequestParam(value = "from") String from,  @RequestParam(value="to") String to);
 
 
 

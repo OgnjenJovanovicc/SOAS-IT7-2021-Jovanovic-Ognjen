@@ -4,6 +4,8 @@ package apiGateway.authentication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
+import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -69,7 +71,9 @@ public class ApiGatewayAuthentication {
 				.retrieve()
 				.bodyToMono(UserDto.class)
 				.map(dto -> User.withUsername(dto.getEmail())
-						.password(encoder.encode(dto.getPassword()))
+						//.password(encoder.encode(dto.getPassword()))
+						.password("{noop}" + dto.getPassword())
+						//.roles(dto.getRole())
 						.roles(dto.getRole())
 						.build()
 				);

@@ -6,74 +6,195 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import api.dtos.UserDto;
 import api.services.UsersService;
+import usersService.decoder.Decoder;
 
 @RestController
+@RequestMapping("/users")
 public class UserServiceImpl implements UsersService {
 
-	@Autowired
-	private UserRepository repo;
-	@Override
-	public List<UserDto> getUsers() {
-		List<UserModel> models=repo.findAll();
-		List<UserDto> dtos=new ArrayList<UserDto>();
-		for(UserModel model: models) {
-			dtos.add(convertModelToDto(model));
-		}
-		return dtos;
-	}
+    @Autowired
+    private UserRepository repo;
+    
+    @Autowired
+    private Decoder decoder;
 
-	@Override
-	public UserDto getUserByEmail(String email) {
-		 UserModel model = repo.findByEmail(email);
-		    if (model == null) {
-		        return null; 
-		    }
-		    return convertModelToDto(model);
-		}
-	
+    @Override
+    @GetMapping
+    public ResponseEntity<?> getUsers(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        if (authorization == null) {
+        	 System.out.print("nevalja");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authorization header required");
+  
+        }
+        
+        String email = decoder.decodeHeader(authorization);
+        UserModel requester = repo.findByEmail(email);
+        
+        if (requester == null || (!requester.getRole().equals("OWNER") && !requester.getRole().equals("ADMIN"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+        
+        List<UserDto> dtos = new ArrayList<>();
+        for (UserModel user : repo.findAll()) {
+            dtos.add(convertModelToDto(user));
+        }
+        return ResponseEntity.ok(dtos);
+    }
 
-	@Override
-	public ResponseEntity<?> createAdmin(UserDto dto) {
-		if(repo.findByEmail(dto.getEmail())==null){
-			dto.setRole("ADMIN");
-			UserModel model=convertDtoToModel(dto);
-			return ResponseEntity.status(HttpStatus.CREATED).body(repo.save(model));
-		}else {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body("Admin with passed eamil alredy exist");
-		}
-	}
 
-	@Override
-	public ResponseEntity<?> createUser(UserDto dto) {
-		if(repo.findByEmail(dto.getEmail())==null){
-			dto.setRole("USER");
-			UserModel model=convertDtoToModel(dto);
-			return ResponseEntity.status(HttpStatus.CREATED).body(repo.save(model));
-		}else {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body("User with passed eamil doesnt exist");
-		}
-	}
+    @Override
+    @GetMapping("/email")
+    public ResponseEntity<?> getUserByEmail(@RequestParam String email,
+                                           @RequestHeader("Authorization") String authorization) {
+        String requesterEmail = decoder.decodeHeader(authorization);
+        UserModel requester = repo.findByEmail(requesterEmail);
+        
+        if (requester == null || (!requester.getRole().equals("OWNER") && !requester.getRole().equals("ADMIN"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+        
+        UserModel model = repo.findByEmail(email);
+        if (model == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+                
+        
+        if (requester.getRole().equals("ADMIN") && !model.getRole().equals("USER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("ADMIN can only view USERs");
+        }
+        
+        return ResponseEntity.ok(convertModelToDto(model));
+    }
 
-	@Override
-	public ResponseEntity<?> updateUser(UserDto dto) {
-		if(repo.findByEmail(dto.getEmail())!=null){
-			repo.updateUser(dto.getEmail(), dto.getPassword(), dto.getRole());
-			return ResponseEntity.status(HttpStatus.OK).body(dto);
-		}else {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body("User with passed eamil deoesnt exist");
-		}
-	}
-	
-	public UserDto convertModelToDto(UserModel model) {
-		return new UserDto(model.getEmail(),model.getPassword(),model.getRole());
-	}
-	
-	public UserModel convertDtoToModel(UserDto dto) {
-		return new UserModel(dto.getEmail(),dto.getPassword(),dto.getRole());
-	}
+    @Override
+    @PostMapping("/newAdmin")
+    public ResponseEntity<?> createAdmin(@RequestBody UserDto dto,
+                                         @RequestHeader("Authorization") String authorization) {
+        String email = decoder.decodeHeader(authorization);
+        UserModel requester = repo.findByEmail(email);
+        
+        if (requester == null || !requester.getRole().equals("OWNER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only OWNER can create ADMIN");
+        }
 
+        if (repo.findByEmail(dto.getEmail()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("User with this email already exists");
+        }
+        
+        dto.setRole("ADMIN");
+        UserModel model = convertDtoToModel(dto);
+        repo.save(model);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertModelToDto(model));
+    }
+
+    @Override
+    @PostMapping("/newUser")
+    public ResponseEntity<?> createUser(@RequestBody UserDto dto,
+                                        @RequestHeader("Authorization") String authorization) {
+        String email = decoder.decodeHeader(authorization);
+        UserModel requester = repo.findByEmail(email);
+
+        if (requester == null || (!requester.getRole().equals("OWNER") && !requester.getRole().equals("ADMIN"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+
+        if (repo.findByEmail(dto.getEmail()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("User with this email already exists");
+        }
+
+        dto.setRole("USER");
+        UserModel model = convertDtoToModel(dto);
+        repo.save(model);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertModelToDto(model));
+    }
+
+    @Override
+    @PutMapping
+    public ResponseEntity<?> updateUser(@RequestParam String email,
+                                        @RequestBody UserDto dto,
+                                        @RequestHeader("Authorization") String authorization) {
+
+        String requesterEmail = decoder.decodeHeader(authorization);
+        UserModel requester = repo.findByEmail(requesterEmail);
+
+        if (requester == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+
+        UserModel target = repo.findByEmail(email);
+        if (target == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        if (requester.getRole().equals("USER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("USER cannot update users");
+        }
+
+        if (requester.getRole().equals("ADMIN") && !target.getRole().equals("USER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("ADMIN can update only USERs");
+        }
+
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            target.setPassword(dto.getPassword());
+        }
+
+        if (requester.getRole().equals("OWNER")) {
+
+            if (dto.getRole() != null && !dto.getRole().equals(target.getRole())) {
+
+                if (dto.getRole().equals("OWNER")
+                        && repo.findByRole("OWNER") != null
+                        && !target.getRole().equals("OWNER")) {
+
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body("There can be only one OWNER");
+                }
+
+                target.setRole(dto.getRole());
+            }
+        }
+
+        repo.save(target);
+        return ResponseEntity.ok(convertModelToDto(target));
+    }
+
+
+    @Override
+    @DeleteMapping
+    public ResponseEntity<?> deleteUser(@RequestParam String email,
+                                        @RequestHeader("Authorization") String authorization) {
+        String requesterEmail = decoder.decodeHeader(authorization);
+        UserModel requester = repo.findByEmail(requesterEmail);
+        
+        if (requester == null || !requester.getRole().equals("OWNER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only OWNER can delete users");
+        }
+
+        UserModel target = repo.findByEmail(email);
+        if (target == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        
+        if (target.getEmail().equals(requester.getEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("OWNER cannot delete themselves");
+        }
+        
+        repo.delete(target);
+        return ResponseEntity.ok("User deleted");
+    }
+
+    private UserDto convertModelToDto(UserModel model) {
+        return new UserDto(model.getEmail(), model.getPassword(), model.getRole());
+    }
+
+    private UserModel convertDtoToModel(UserDto dto) {
+        return new UserModel(dto.getEmail(), dto.getPassword(), dto.getRole());
+    }
 }

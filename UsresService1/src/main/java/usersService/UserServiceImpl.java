@@ -22,13 +22,17 @@ public class UserServiceImpl implements UsersService {
     @Autowired
     private Decoder decoder;
 
+    
+    @Autowired
+    private BankAccountClient bankAccountClient;
+
+    
     @Override
     @GetMapping
     public ResponseEntity<?> getUsers(@RequestHeader(value = "Authorization", required = false) String authorization) {
         if (authorization == null) {
-        	 System.out.print("nevalja");
+            System.out.print("Authorization header missing");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authorization header required");
-  
         }
         
         String email = decoder.decodeHeader(authorization);
@@ -44,31 +48,42 @@ public class UserServiceImpl implements UsersService {
         }
         return ResponseEntity.ok(dtos);
     }
-
-
+    
     @Override
     @GetMapping("/email")
     public ResponseEntity<?> getUserByEmail(@RequestParam String email,
                                            @RequestHeader("Authorization") String authorization) {
+
         String requesterEmail = decoder.decodeHeader(authorization);
         UserModel requester = repo.findByEmail(requesterEmail);
-        
-        if (requester == null || (!requester.getRole().equals("OWNER") && !requester.getRole().equals("ADMIN"))) {
+
+        if (requester == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
         }
-        
-        UserModel model = repo.findByEmail(email);
-        if (model == null) {
+
+        if (requesterEmail.equals(email)) {
+            return ResponseEntity.ok(convertModelToDto(requester));
+        }
+
+        UserModel target = repo.findByEmail(email);
+        if (target == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
-                
-        
-        if (requester.getRole().equals("ADMIN") && !model.getRole().equals("USER")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("ADMIN can only view USERs");
+
+        if (requester.getRole().equals("USER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("USER can view only themselves");
         }
-        
-        return ResponseEntity.ok(convertModelToDto(model));
+
+        if (requester.getRole().equals("ADMIN") && !target.getRole().equals("USER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("ADMIN can view only USERs");
+        }
+
+        return ResponseEntity.ok(convertModelToDto(target));
     }
+
+
 
     @Override
     @PostMapping("/newAdmin")
@@ -91,7 +106,7 @@ public class UserServiceImpl implements UsersService {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(convertModelToDto(model));
     }
-
+   
     @Override
     @PostMapping("/newUser")
     public ResponseEntity<?> createUser(@RequestBody UserDto dto,
@@ -110,6 +125,19 @@ public class UserServiceImpl implements UsersService {
         dto.setRole("USER");
         UserModel model = convertDtoToModel(dto);
         repo.save(model);
+        
+        try {
+            bankAccountClient.createAccountForUser(dto.getEmail())
+                .subscribe(success -> {
+                    if (success) {
+                        System.out.println("Bank account created for user: " + dto.getEmail());
+                    } else {
+                        System.out.println("Failed to create bank account for user: " + dto.getEmail());
+                    }
+                });
+        } catch (Exception e) {
+            System.err.println("Error creating bank account: " + e.getMessage());
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(convertModelToDto(model));
     }
@@ -141,22 +169,48 @@ public class UserServiceImpl implements UsersService {
                     .body("ADMIN can update only USERs");
         }
 
+    
+        if (dto.getRole() != null && !dto.getRole().equals(target.getRole())) {
+
+            if (target.getRole().equals("USER") && !dto.getRole().equals("USER")) {
+                try {
+                    bankAccountClient.deleteAccountForUser(email)
+                        .subscribe(success -> {
+                            if (success) {
+                                System.out.println("Bank account deleted for user (role change): " + email);
+                            }
+                        });
+                } catch (Exception e) {
+                    System.err.println("Error deleting bank account during role change: " + e.getMessage());
+                }
+            }
+            
+            if (!target.getRole().equals("USER") && dto.getRole().equals("USER")) {
+                try {
+                    bankAccountClient.createAccountForUser(email)
+                        .subscribe(success -> {
+                            if (success) {
+                                System.out.println("Bank account created for user (role change to USER): " + email);
+                            }
+                        });
+                } catch (Exception e) {
+                    System.err.println("Error creating bank account during role change: " + e.getMessage());
+                }
+            }
+        }
+
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             target.setPassword(dto.getPassword());
         }
 
         if (requester.getRole().equals("OWNER")) {
-
             if (dto.getRole() != null && !dto.getRole().equals(target.getRole())) {
-
                 if (dto.getRole().equals("OWNER")
                         && repo.findByRole("OWNER") != null
                         && !target.getRole().equals("OWNER")) {
-
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
                             .body("There can be only one OWNER");
                 }
-
                 target.setRole(dto.getRole());
             }
         }
@@ -165,7 +219,7 @@ public class UserServiceImpl implements UsersService {
         return ResponseEntity.ok(convertModelToDto(target));
     }
 
-
+    
     @Override
     @DeleteMapping
     public ResponseEntity<?> deleteUser(@RequestParam String email,
@@ -186,10 +240,25 @@ public class UserServiceImpl implements UsersService {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("OWNER cannot delete themselves");
         }
         
+ 
+        if (target.getRole().equals("USER")) {
+            try {
+                boolean deleted = bankAccountClient.deleteAccountForUser(email).block();
+                if (deleted) {
+                    System.out.println("Bank account deleted for user: " + email);
+                } else {
+                    System.out.println("No bank account found for user: " + email);
+                }
+            } catch (Exception e) {
+                System.err.println("Error deleting bank account: " + e.getMessage());
+
+            }
+        }
+        
         repo.delete(target);
         return ResponseEntity.ok("User deleted");
     }
-
+    
     private UserDto convertModelToDto(UserModel model) {
         return new UserDto(model.getEmail(), model.getPassword(), model.getRole());
     }
@@ -197,4 +266,6 @@ public class UserServiceImpl implements UsersService {
     private UserModel convertDtoToModel(UserDto dto) {
         return new UserModel(dto.getEmail(), dto.getPassword(), dto.getRole());
     }
+
+    
 }

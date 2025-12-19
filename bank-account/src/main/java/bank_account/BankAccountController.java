@@ -1,0 +1,212 @@
+package bank_account;
+
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+
+import api.dtos.BankAccountDto;
+import api.dtos.CreateBankAccountDto;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+
+@RestController
+@RequestMapping("/bank-account")
+public class BankAccountController {
+
+    @Autowired
+    private BankAccountRepository repo;
+
+    @Autowired
+    private UserServiceClient users;
+
+    @Autowired
+    private AuthDecoder auth;
+
+    private BankAccountEntity convertToEntity(BankAccountDto dto) {
+        BankAccountEntity e = new BankAccountEntity();
+        e.setEmail(dto.getEmail());
+        e.setUsdAmount(dto.getUsdAmount() != null ? dto.getUsdAmount() : BigDecimal.ZERO);
+        e.setEurAmount(dto.getEurAmount() != null ? dto.getEurAmount() : BigDecimal.ZERO);
+        e.setGbpAmount(dto.getGbpAmount() != null ? dto.getGbpAmount() : BigDecimal.ZERO);
+        e.setChfAmount(dto.getChfAmount() != null ? dto.getChfAmount() : BigDecimal.ZERO);
+        e.setRsdAmount(dto.getRsdAmount() != null ? dto.getRsdAmount() : BigDecimal.ZERO);
+        return e;
+    }
+
+    private BankAccountDto convertToDto(BankAccountEntity e) {
+        BankAccountDto dto = new BankAccountDto();
+        dto.setEmail(e.getEmail());
+        dto.setUsdAmount(e.getUsdAmount());
+        dto.setEurAmount(e.getEurAmount());
+        dto.setGbpAmount(e.getGbpAmount());
+        dto.setChfAmount(e.getChfAmount());
+        dto.setRsdAmount(e.getRsdAmount());
+        return dto;
+    }
+
+    
+    
+    @GetMapping
+    public ResponseEntity<?> getAll(@RequestHeader("Authorization") String authHeader) {
+
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only ADMIN can view all accounts");
+        }
+
+        List<BankAccountDto> result = new ArrayList<>();
+        for (BankAccountEntity e : repo.findAll()) {
+            result.add(convertToDto(e));
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{email}")
+    public ResponseEntity<?> getOne(@PathVariable String email,
+                                    @RequestHeader("Authorization") String authHeader) {
+
+     
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"USER".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER role can access this endpoint");
+        }
+
+        if (!requester.equals(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("USER can view only their own account");
+        }
+
+        BankAccountEntity entity = repo.findByEmail(email).orElse(null);
+
+        if (entity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Account not found");
+        }
+
+        return ResponseEntity.ok(convertToDto(entity));
+    }
+
+
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody CreateBankAccountDto dto,
+                                    @RequestHeader("Authorization") String authHeader) {
+
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only ADMIN can create accounts");
+        }
+
+        if (repo.existsByEmail(dto.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Account already exists");
+        }
+
+        BankAccountEntity entity = new BankAccountEntity();
+        entity.setEmail(dto.getEmail());
+        entity.setUsdAmount(BigDecimal.ZERO);
+        entity.setEurAmount(BigDecimal.ZERO);
+        entity.setGbpAmount(BigDecimal.ZERO);
+        entity.setChfAmount(BigDecimal.ZERO);
+        entity.setRsdAmount(BigDecimal.ZERO);
+
+        repo.save(entity);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(convertToDto(entity));
+    }
+
+    @PostMapping("/internal/create/{email}")
+    public ResponseEntity<?> internalCreate(@PathVariable String email) {
+
+        if (!repo.existsByEmail(email)) {
+            BankAccountEntity entity = new BankAccountEntity();
+            entity.setEmail(email);
+            entity.setUsdAmount(BigDecimal.ZERO);
+            entity.setEurAmount(BigDecimal.ZERO);
+            entity.setGbpAmount(BigDecimal.ZERO);
+            entity.setChfAmount(BigDecimal.ZERO);
+            entity.setRsdAmount(BigDecimal.ZERO);
+            repo.save(entity);
+        }
+
+        return ResponseEntity.ok("Account created for " + email);
+    }
+
+    @DeleteMapping("/internal/delete/{email}")
+    public ResponseEntity<?> internalDelete(@PathVariable String email) {
+
+        repo.deleteByEmail(email);
+        return ResponseEntity.ok("Account deleted for " + email);
+    }
+    
+    @PutMapping("/{email}")
+    public ResponseEntity<?> update(@PathVariable String email,
+                                    @RequestBody BankAccountDto dto,
+                                    @RequestHeader("Authorization") String authHeader) {
+
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only ADMIN can update bank accounts");
+        }
+
+        BankAccountEntity entity = repo.findByEmail(email).orElse(null);
+
+        if (entity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Account not found");
+        }
+
+        entity.setUsdAmount(dto.getUsdAmount() != null ? dto.getUsdAmount() : entity.getUsdAmount());
+        entity.setEurAmount(dto.getEurAmount() != null ? dto.getEurAmount() : entity.getEurAmount());
+        entity.setGbpAmount(dto.getGbpAmount() != null ? dto.getGbpAmount() : entity.getGbpAmount());
+        entity.setChfAmount(dto.getChfAmount() != null ? dto.getChfAmount() : entity.getChfAmount());
+        entity.setRsdAmount(dto.getRsdAmount() != null ? dto.getRsdAmount() : entity.getRsdAmount());
+
+        repo.save(entity);
+
+        return ResponseEntity.ok(convertToDto(entity));
+    
+    }
+    
+
+    @DeleteMapping("/{email}")
+    public ResponseEntity<?> delete(@PathVariable String email,
+                                    @RequestHeader("Authorization") String authHeader) {
+
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only ADMIN can delete bank accounts");
+        }
+
+        if (!repo.existsByEmail(email)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Account not found");
+        }
+
+        repo.deleteByEmail(email);
+
+        return ResponseEntity.ok("Account deleted for " + email);
+    }
+
+}

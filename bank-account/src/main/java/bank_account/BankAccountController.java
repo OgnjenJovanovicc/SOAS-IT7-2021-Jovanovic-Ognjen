@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -207,6 +209,91 @@ public class BankAccountController {
         repo.deleteByEmail(email);
 
         return ResponseEntity.ok("Account deleted for " + email);
+    }
+    
+    @PutMapping("/internal/update/{email}")
+    public ResponseEntity<?> internalUpdate(
+            @PathVariable String email, 
+            @RequestBody BankAccountDto dto) {
+        
+        BankAccountEntity entity = repo.findByEmail(email).orElse(null);
+        if (entity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Account not found");
+        }
+        
+        // Ažuriraj iznose
+        if (dto.getUsdAmount() != null) entity.setUsdAmount(dto.getUsdAmount());
+        if (dto.getEurAmount() != null) entity.setEurAmount(dto.getEurAmount());
+        if (dto.getGbpAmount() != null) entity.setGbpAmount(dto.getGbpAmount());
+        if (dto.getChfAmount() != null) entity.setChfAmount(dto.getChfAmount());
+        if (dto.getRsdAmount() != null) entity.setRsdAmount(dto.getRsdAmount());
+        
+        repo.save(entity);
+        return ResponseEntity.ok(convertToDto(entity));
+    }
+    
+    @PostMapping("/{email}/exchange")
+    public ResponseEntity<?> exchangeCurrency(
+            @PathVariable String email,
+            @RequestParam String fromCurrency,
+            @RequestParam String toCurrency,
+            @RequestParam BigDecimal amount,
+            @RequestParam BigDecimal exchangeRate,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        // 1. Provera ko je pozivaoc
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        if (requester == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+        
+        // 2. Provera role - samo USER može (ili ADMIN)
+        String role = users.getUserRole(requester, authHeader).block();
+        if (!"USER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER or ADMIN can exchange currency");
+        }
+        
+        // 3. USER može samo svoj račun
+        if ("USER".equals(role) && !requester.equals(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("USER can exchange only on own account");
+        }
+        
+        // 4. Pronađi račun
+        BankAccountEntity entity = repo.findByEmail(email).orElse(null);
+        if (entity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account not found");
+        }
+        
+        // 5. Provera sredstava
+        BigDecimal currentAmount = entity.getAmountByCurrency(fromCurrency);
+        if (currentAmount.compareTo(amount) < 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Insufficient funds in " + fromCurrency);
+        }
+        
+        // 6. Izvrši razmenu
+        BigDecimal convertedAmount = amount.multiply(exchangeRate);
+        BigDecimal newFromAmount = currentAmount.subtract(amount);
+        BigDecimal currentToAmount = entity.getAmountByCurrency(toCurrency);
+        BigDecimal newToAmount = currentToAmount.add(convertedAmount);
+        
+        entity.setAmountByCurrency(fromCurrency, newFromAmount);
+        entity.setAmountByCurrency(toCurrency, newToAmount);
+        
+        repo.save(entity);
+        
+        // 7. Vrati odgovor
+        Map<String, Object> response = new HashMap<>();
+        response.put("email", email);
+        response.put("transactionMessage", 
+            String.format("Uspešno je izvršena razmena %s: %s za %s: %s",
+                fromCurrency, amount, toCurrency, convertedAmount));
+        response.put("newBalances", convertToDto(entity));
+        
+        return ResponseEntity.ok(response);
     }
 
 }

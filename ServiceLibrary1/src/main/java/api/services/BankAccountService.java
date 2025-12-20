@@ -35,4 +35,14 @@ public interface BankAccountService {
 	                                          @PathVariable String currency,
 	                                          @RequestParam BigDecimal amount,
 	                                          @RequestHeader("Authorization") String authorization);
-	}
+	    
+	    @PostMapping("/bank-account/{email}/exchange")
+	    ResponseEntity<?> exchangeCurrency(
+	            @PathVariable String email,
+	            @RequestParam String fromCurrency,
+	            @RequestParam String toCurrency,
+	            @RequestParam BigDecimal amount,
+	            @RequestParam BigDecimal exchangeRate,
+	            @RequestHeader("Authorization") String authorization);
+	    
+}

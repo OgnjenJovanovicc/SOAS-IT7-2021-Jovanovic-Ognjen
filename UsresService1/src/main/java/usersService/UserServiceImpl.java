@@ -25,6 +25,9 @@ public class UserServiceImpl implements UsersService {
     
     @Autowired
     private BankAccountClient bankAccountClient;
+    
+    @Autowired
+    private CryptoWalletClient cryptoWalletClient;
 
     
     @Override
@@ -125,6 +128,14 @@ public class UserServiceImpl implements UsersService {
         dto.setRole("USER");
         UserModel model = convertDtoToModel(dto);
         repo.save(model);
+        cryptoWalletClient.createWallet(dto.getEmail())
+        .subscribe(success -> {
+            if (success) {
+                System.out.println("Crypto wallet created for user: " + dto.getEmail());
+            } else {
+                System.out.println("Failed to create crypto wallet for user: " + dto.getEmail());
+            }
+        });
         
         try {
             bankAccountClient.createAccountForUser(dto.getEmail())
@@ -239,7 +250,12 @@ public class UserServiceImpl implements UsersService {
         if (target.getEmail().equals(requester.getEmail())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("OWNER cannot delete themselves");
         }
-        
+        cryptoWalletClient.deleteWallet(email)
+        .subscribe(success -> {
+            if (success) {
+                System.out.println("Crypto wallet deleted for user: " + email);
+            }
+        });
  
         if (target.getRole().equals("USER")) {
             try {

@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 
 import api.dtos.CryptoWalletDto;
 
-
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,29 +69,51 @@ public class CryptoWalletController {
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
-   /*
-    @PostMapping
-    public ResponseEntity<?> create(
-            @RequestBody CryptoWalletDto dto,
+ 
+    @PostMapping("/{email}/exchange")
+    public ResponseEntity<?> exchange(
+            @PathVariable String email,
+            @RequestParam String fromCrypto,
+            @RequestParam String toCrypto,
+            @RequestParam BigDecimal amount,
+            @RequestParam BigDecimal exchangeRate,
             @RequestHeader("Authorization") String authHeader) {
 
-        String admin = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(admin, authHeader).block();
+        String requesterEmail = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requesterEmail, authHeader).block();
 
-        if (!"ADMIN".equals(role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (!"USER".equals(role) || !email.equals(requesterEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER can exchange own crypto");
         }
 
-        if (repo.existsByEmail(dto.getEmail())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
+        return repo.findByEmail(email).map(wallet -> {
 
-        CryptoWalletEntity wallet = new CryptoWalletEntity(dto.getEmail());
-        repo.save(wallet);
+            if ("BTC".equals(fromCrypto) &&
+                wallet.getBtcAmount().compareTo(amount) < 0) {
+                return ResponseEntity.badRequest().body("Insufficient BTC funds");
+            }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(wallet));
+            if ("BTC".equals(fromCrypto)) {
+                wallet.setBtcAmount(
+                    wallet.getBtcAmount().subtract(amount)
+                );
+            }
+
+            BigDecimal converted = amount.multiply(exchangeRate);
+
+            if ("USDT".equals(toCrypto)) {
+                wallet.setUsdtAmount(
+                    wallet.getUsdtAmount().add(converted)
+                );
+            }
+
+            repo.save(wallet);
+            return ResponseEntity.ok(toDto(wallet));
+
+        }).orElse(ResponseEntity.notFound().build());
     }
-    */
+
     @PutMapping("/{email}")
     public ResponseEntity<?> updateWallet(
             @PathVariable String email,

@@ -196,5 +196,78 @@ public class CryptoWalletController {
         System.out.println("→ Internal wallet deleted for: " + email);
         return ResponseEntity.ok().build();
     }
+    @PostMapping("/{email}/withdraw")
+    public ResponseEntity<?> withdraw(
+            @PathVariable String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount,
+            @RequestHeader("Authorization") String authHeader) {
+
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"USER".equals(role) || !email.equals(requester)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER can withdraw from own wallet");
+        }
+
+        CryptoWalletEntity wallet = repo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+
+        switch (currency.toUpperCase()) {
+            case "BTC" -> {
+                if (wallet.getBtcAmount().compareTo(amount) < 0)
+                    return ResponseEntity.badRequest().body("Insufficient BTC");
+                wallet.setBtcAmount(wallet.getBtcAmount().subtract(amount));
+            }
+            case "ETH" -> {
+                if (wallet.getEthAmount().compareTo(amount) < 0)
+                    return ResponseEntity.badRequest().body("Insufficient ETH");
+                wallet.setEthAmount(wallet.getEthAmount().subtract(amount));
+            }
+            case "USDT" -> {
+                if (wallet.getUsdtAmount().compareTo(amount) < 0)
+                    return ResponseEntity.badRequest().body("Insufficient USDT");
+                wallet.setUsdtAmount(wallet.getUsdtAmount().subtract(amount));
+            }
+            default -> {
+                return ResponseEntity.badRequest().body("Unsupported crypto");
+            }
+        }
+
+        repo.save(wallet);
+        return ResponseEntity.ok(toDto(wallet));
+    }
+    
+    @PostMapping("/{email}/deposit")
+    public ResponseEntity<?> deposit(
+            @PathVariable String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount,
+            @RequestHeader("Authorization") String authHeader) {
+
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"USER".equals(role) || !email.equals(requester)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER can deposit to own wallet");
+        }
+
+        CryptoWalletEntity wallet = repo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+
+        switch (currency.toUpperCase()) {
+            case "BTC" -> wallet.setBtcAmount(wallet.getBtcAmount().add(amount));
+            case "ETH" -> wallet.setEthAmount(wallet.getEthAmount().add(amount));
+            case "USDT" -> wallet.setUsdtAmount(wallet.getUsdtAmount().add(amount));
+            default -> {
+                return ResponseEntity.badRequest().body("Unsupported crypto");
+            }
+        }
+
+        repo.save(wallet);
+        return ResponseEntity.ok(toDto(wallet));
+    }
 
 }

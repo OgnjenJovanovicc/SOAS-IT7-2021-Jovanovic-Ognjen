@@ -242,39 +242,34 @@ public class BankAccountController {
             @RequestParam BigDecimal exchangeRate,
             @RequestHeader("Authorization") String authHeader) {
         
-        // 1. Provera ko je pozivaoc
+
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
         if (requester == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
         
-        // 2. Provera role - samo USER može (ili ADMIN)
         String role = users.getUserRole(requester, authHeader).block();
         if (!"USER".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only USER or ADMIN can exchange currency");
         }
         
-        // 3. USER može samo svoj račun
         if ("USER".equals(role) && !requester.equals(email)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("USER can exchange only on own account");
         }
         
-        // 4. Pronađi račun
         BankAccountEntity entity = repo.findByEmail(email).orElse(null);
         if (entity == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account not found");
         }
         
-        // 5. Provera sredstava
         BigDecimal currentAmount = entity.getAmountByCurrency(fromCurrency);
         if (currentAmount.compareTo(amount) < 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Insufficient funds in " + fromCurrency);
         }
         
-        // 6. Izvrši razmenu
         BigDecimal convertedAmount = amount.multiply(exchangeRate);
         BigDecimal newFromAmount = currentAmount.subtract(amount);
         BigDecimal currentToAmount = entity.getAmountByCurrency(toCurrency);
@@ -285,7 +280,6 @@ public class BankAccountController {
         
         repo.save(entity);
         
-        // 7. Vrati odgovor
         Map<String, Object> response = new HashMap<>();
         response.put("email", email);
         response.put("transactionMessage", 
@@ -295,5 +289,87 @@ public class BankAccountController {
         
         return ResponseEntity.ok(response);
     }
+    
+    @PostMapping("/{email}/withdraw")
+    public ResponseEntity<?> withdraw(
+            @PathVariable String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+        
+        if (!"USER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER or ADMIN can withdraw");
+        }
+        
+        if ("USER".equals(role) && !requester.equals(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("USER can withdraw only from own account");
+        }
+        
+        BankAccountEntity entity = repo.findByEmail(email).orElse(null);
+        if (entity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Account not found");
+        }
+        
+        BigDecimal currentAmount = entity.getAmountByCurrency(currency);
+        if (currentAmount.compareTo(amount) < 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Insufficient funds in " + currency);
+        }
+        
+        BigDecimal newAmount = currentAmount.subtract(amount);
+        entity.setAmountByCurrency(currency, newAmount);
+        repo.save(entity);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("email", email);
+        response.put("message", "Withdrawn " + amount + " " + currency);
+        response.put("newBalance", newAmount);
+        
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/{email}/deposit")
+    public ResponseEntity<?> deposit(
+            @PathVariable String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount,
+            @RequestHeader("Authorization") String authHeader) {
 
+        String requester = auth.decodeEmailFromAuthHeader(authHeader);
+        String role = users.getUserRole(requester, authHeader).block();
+
+        if (!"USER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only USER or ADMIN can deposit");
+        }
+
+        if ("USER".equals(role) && !requester.equals(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("USER can deposit only to own account");
+        }
+
+        BankAccountEntity entity = repo.findByEmail(email).orElse(null);
+        if (entity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Account not found");
+        }
+
+        BigDecimal currentAmount = entity.getAmountByCurrency(currency);
+        BigDecimal newAmount = currentAmount.add(amount);
+
+        entity.setAmountByCurrency(currency, newAmount);
+        repo.save(entity);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("email", email);
+        response.put("message", "Deposited " + amount + " " + currency);
+        response.put("newBalance", newAmount);
+
+        return ResponseEntity.ok(response);
+    }
 }

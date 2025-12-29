@@ -1,4 +1,5 @@
 package api.proxies;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,4 +15,6 @@ public interface CryptoExchangeProxy {
     ResponseEntity<CryptoExchangeDto> getCryptoExchange(
             @RequestParam String from,
             @RequestParam String to);
+    
+
 }

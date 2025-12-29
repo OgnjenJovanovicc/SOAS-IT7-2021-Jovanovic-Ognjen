@@ -45,4 +45,20 @@ public interface BankAccountService {
 	            @RequestParam BigDecimal exchangeRate,
 	            @RequestHeader("Authorization") String authorization);
 	    
+	    @PostMapping("/bank-account/{email}/withdraw")
+	    ResponseEntity<?> withdraw(
+	            @PathVariable String email,
+	            @RequestParam String currency,
+	            @RequestParam BigDecimal amount,
+	            @RequestHeader("Authorization") String authorization
+	    );
+
+	    @PostMapping("/bank-account/{email}/deposit")
+	    ResponseEntity<?> deposit(
+	            @PathVariable String email,
+	            @RequestParam String currency,
+	            @RequestParam BigDecimal amount,
+	            @RequestHeader("Authorization") String authorization
+	    );
+	    
 }

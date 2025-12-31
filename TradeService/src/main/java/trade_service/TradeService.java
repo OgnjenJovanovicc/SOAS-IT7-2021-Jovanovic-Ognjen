@@ -72,6 +72,93 @@ public class TradeService {
                 : fiatToCrypto(email, from, to, amount, authHeader);
     }
 
+    public ResponseEntity<?> tradeGet(String from, String to, BigDecimal amount, String authHeader) {
+        if (authHeader == null) {
+            return calculateTradeOnly(from, to, amount);
+        }
+
+        TradeRequest request = new TradeRequest();
+        request.setFrom(from);
+        request.setTo(to);
+        request.setAmount(amount);
+
+        return trade(request, authHeader);
+    }
+
+    private ResponseEntity<?> calculateTradeOnly(String from, String to, BigDecimal amount) {
+        try {
+            String fromUpper = from.toUpperCase();
+            String toUpper = to.toUpperCase();
+            
+            boolean fromCrypto = isCrypto(fromUpper);
+            boolean toCrypto = isCrypto(toUpper);
+            
+            if (fromCrypto && toCrypto) {
+                return ResponseEntity.badRequest()
+                        .body("Crypto→Crypto not supported in Trade service");
+            }
+            if (!fromCrypto && !toCrypto) {
+                return ResponseEntity.badRequest()
+                        .body("Fiat→Fiat not supported in Trade service");
+            }
+
+            String intermediateFiat = determineIntermediateFiat(fromCrypto ? toUpper : fromUpper);
+            BigDecimal rate = BigDecimal.ONE;
+            BigDecimal finalAmount = amount;
+            String calculationNote = "";
+            
+            if (fromCrypto) {
+                // CRYPTO → FIAT
+                rate = getRate(fromUpper, intermediateFiat);
+                finalAmount = amount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+                
+                if (!toUpper.equals(intermediateFiat)) {
+                    BigDecimal intermediateToFinalRate = getRate(intermediateFiat, toUpper);
+                    finalAmount = finalAmount.multiply(intermediateToFinalRate).setScale(2, RoundingMode.HALF_UP);
+                    calculationNote = String.format(" (preko %s)", intermediateFiat);
+                }
+                
+            } else {
+                // FIAT → CRYPTO
+                if (!fromUpper.equals(intermediateFiat)) {
+                    BigDecimal fromToIntermediateRate = getRate(fromUpper, intermediateFiat);
+                    BigDecimal intermediateAmount = amount.multiply(fromToIntermediateRate)
+                                                         .setScale(2, RoundingMode.HALF_UP);
+                    rate = getRate(intermediateFiat, toUpper);
+                    finalAmount = intermediateAmount.multiply(rate).setScale(8, RoundingMode.HALF_UP);
+                    calculationNote = String.format(" (preko %s)", intermediateFiat);
+                } else {
+                    rate = getRate(intermediateFiat, toUpper);
+                    finalAmount = amount.multiply(rate).setScale(8, RoundingMode.HALF_UP);
+                }
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("from", fromUpper);
+            response.put("to", toUpper);
+            response.put("amount", amount);
+            response.put("exchangeRate", rate);
+            response.put("convertedAmount", finalAmount);
+            response.put("intermediateCurrency", intermediateFiat);
+            response.put("tradeType", fromCrypto ? "CRYPTO_TO_FIAT" : "FIAT_TO_CRYPTO");
+            response.put("calculation", 
+                String.format("%s %s → %s %s%s", 
+                    amount, fromUpper, finalAmount, toUpper, calculationNote));
+            response.put("note", "Calculation only - no transaction performed");
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Calculation failed: " + e.getMessage());
+            errorResponse.put("note", "This is calculation only - no funds were transferred");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+    }
+
     // ================= FIAT → CRYPTO =================
     private ResponseEntity<?> fiatToCrypto(
             String email,
@@ -115,7 +202,7 @@ public class TradeService {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Fiat to Crypto failed: " + e.getMessage());
+                    .body("Fiat to Crypt failed: Insufficient currency in bank account");
         }
     }
 
@@ -167,7 +254,7 @@ public class TradeService {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Crypto to Fiat failed: " + e.getMessage());
+                    .body("Crypto to Fiat failed: Insufficient currency in crypto wallet");
         }
     }
 

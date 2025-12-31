@@ -16,23 +16,19 @@ import api.dtos.CurrencyConversionRequestDto;
 public interface CurrencyConversionService {
 
 	
-/*	@GetMapping("/currency-conversion-feign")
-	ResponseEntity<?> getConversion(@RequestParam String from, @RequestParam String to, @RequestParam BigDecimal quantity);
-	
-	@GetMapping("/currency-conversion")
-	ResponseEntity<?> getConversionFeign(@RequestParam String from, @RequestParam String to, @RequestParam BigDecimal quantity);*/
-	
 	@GetMapping("/currency-conversion")
 	ResponseEntity<?> getConversion(
 	        @RequestParam String from,
 	        @RequestParam String to,
-	        @RequestParam BigDecimal quantity);
+	        @RequestParam BigDecimal quantity,
+	        @RequestHeader(value = "Authorization", required = false) String authorizationHeader); 
 
 	@GetMapping("/currency-conversion-feign")
 	ResponseEntity<?> getConversionFeign(
 	        @RequestParam String from,
 	        @RequestParam String to,
-	        @RequestParam BigDecimal quantity);
+	        @RequestParam BigDecimal quantity,
+	        @RequestHeader(value = "Authorization", required = false) String authorizationHeader); 
 
 	@PostMapping("/convert")
 	ResponseEntity<?> convertCurrency(

@@ -4,18 +4,23 @@ import java.math.BigDecimal;
 import java.util.Base64;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import api.dtos.BankAccountDto;
 import api.dtos.CurrencyConversionDto;
 import api.dtos.CurrencyConversionRequestDto;
-import api.dtos.CurrencyConversionResponseDto;
 import api.dtos.CurrencyExchangeDto;
 import api.dtos.UserDto;
 import api.proxies.CurrencyExchangeProxy;
@@ -24,139 +29,130 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
-import util.exceptions.InsufficientFundsException;
 import util.exceptions.InvalidQuantityException;
 import util.exceptions.UnauthorizedRoleException;
 
 @RestController
 public class CurrencyConversionServiceImpl implements CurrencyConversionService {
 
-	private RestTemplate template = new RestTemplate();
-	
-	@Autowired
-	private CurrencyExchangeProxy proxy;
-	
-	@Value("${bank.account.service.url:http://localhost:8200}")
-	private String bankAccountServiceUrl;
-	
-	Retry retry;
-	CurrencyExchangeDto response;
-	
-	public CurrencyConversionServiceImpl(RetryRegistry registry) {
-		retry=registry.retry("default");
-	}
-	
-/*
-	@Override
-	@CircuitBreaker(name="cb",fallbackMethod="fallback")
-	public ResponseEntity<?> getConversionFeign(String from, String to, BigDecimal quantity) {
-		if(quantity.compareTo(BigDecimal.valueOf(300.0))==1) {
-			throw new InvalidQuantityException(String.format("Qunatity of %s is to large", quantity));
-		}
-		
-		retry.executeSupplier(() -> response = proxy.getExchangeFeign(from, to).getBody());
-		
-		
-		CurrencyConversionDto finalResponse=new CurrencyConversionDto(response,quantity);
-		finalResponse.setFeign(true);
-		return ResponseEntity.ok(finalResponse);
-	}
-	
-	public ResponseEntity<?> fallback(CallNotPermittedException ex){
-		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Currency conversion service is currently unavailbale,Circuit is in OPEN state!");
-	}
-	@Override
-	public ResponseEntity<?> getConversion(String from, String to, BigDecimal quantity) {
-		
-		if(quantity.compareTo(BigDecimal.valueOf(300.0))==1) {
-			throw new InvalidQuantityException(String.format("Qunatity of %s is to large", quantity));
-		}
-		String endPoint ="http://localhost:8000/currency-exchange?from="+ from + "&to=" +to;
-	ResponseEntity<CurrencyExchangeDto>response = template.getForEntity(endPoint, CurrencyExchangeDto.class);
-	return ResponseEntity.ok(new CurrencyConversionDto(response.getBody(),quantity));
-	}
-
-
-	@Override
-	public ResponseEntity<?> convertCurrency(CurrencyConversionRequestDto request, String authorizationHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}*/
-
-    @Override
-    @CircuitBreaker(name="cb",fallbackMethod="fallback")
-    public ResponseEntity<?> getConversionFeign(String from, String to, BigDecimal quantity) {
-        if(quantity.compareTo(BigDecimal.valueOf(300.0))==1) {
-            throw new InvalidQuantityException(String.format("Qunatity of %s is to large", quantity));
-        }
-        
-        retry.executeSupplier(() -> response = proxy.getExchangeFeign(from, to).getBody());
-        
-        CurrencyConversionDto finalResponse=new CurrencyConversionDto(response,quantity);
-        finalResponse.setFeign(true);
-        return ResponseEntity.ok(finalResponse);
-    }
+    private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionServiceImpl.class);
     
-    public ResponseEntity<?> fallback(CallNotPermittedException ex){
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Currency conversion service is currently unavailbale,Circuit is in OPEN state!");
+    private RestTemplate template = new RestTemplate();
+    
+    @Autowired
+    private CurrencyExchangeProxy proxy;
+    
+    @Value("${bank.account.service.url:http://localhost:8200}")
+    private String bankAccountServiceUrl;
+    
+    @Value("${users.service.url:http://localhost:8770}")
+    private String usersServiceUrl;
+    
+    Retry retry;
+    CurrencyExchangeDto response;
+    
+    public CurrencyConversionServiceImpl(RetryRegistry registry) {
+        retry = registry.retry("default");
     }
     
     @Override
-    public ResponseEntity<?> getConversion(String from, String to, BigDecimal quantity) {
+    @GetMapping("/currency-conversion-feign")
+    @CircuitBreaker(name="cb", fallbackMethod="fallback")
+    public ResponseEntity<?> getConversionFeign(
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam BigDecimal quantity,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         
-        if(quantity.compareTo(BigDecimal.valueOf(300.0))==1) {
-            throw new InvalidQuantityException(String.format("Qunatity of %s is to large", quantity));
+        logger.info("GET /currency-conversion-feign called");
+        
+        if (authorizationHeader != null) {
+            return performTransaction(from, to, quantity, authorizationHeader);
         }
-        String endPoint ="http://localhost:8000/currency-exchange?from="+ from + "&to=" +to;
-        ResponseEntity<CurrencyExchangeDto>response = template.getForEntity(endPoint, CurrencyExchangeDto.class);
-        return ResponseEntity.ok(new CurrencyConversionDto(response.getBody(),quantity));
-    }
-
-
-    @Override
-    public ResponseEntity<?> convertCurrency(CurrencyConversionRequestDto request, String authorizationHeader) {
         
-        // 1. Dekodiraj email iz Authorization headera
+        return calculateOnly(from, to, quantity);
+    }
+    
+    @Override
+    @GetMapping("/currency-conversion")
+    @CircuitBreaker(name="cb", fallbackMethod="fallback")
+    public ResponseEntity<?> getConversion(
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam BigDecimal quantity,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        
+        logger.info("GET /currency-conversion called");
+        
+        if (authorizationHeader != null) {
+            return performTransaction(from, to, quantity, authorizationHeader);
+        }
+
+        return calculateOnly(from, to, quantity);
+    }
+    
+    @Override
+    @PostMapping("/convert")
+    public ResponseEntity<?> convertCurrency(
+            @RequestBody CurrencyConversionRequestDto request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        logger.info("POST /convert called");
+        
+        return getConversion(
+            request.getFrom(), 
+            request.getTo(), 
+            request.getQuantity(), 
+            authorizationHeader
+        );
+    }
+    
+
+    private ResponseEntity<?> performTransaction(String from, String to, BigDecimal quantity, String authorizationHeader) {
+        logger.info("=== PERFORMING REAL TRANSACTION ===");
+        logger.info("Converting: {} {} to {}", quantity, from, to);
+        
         String email = decodeEmail(authorizationHeader);
         if (email == null) {
+            logger.error("Failed to decode email from authorization header");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid authorization header");
         }
         
-        System.out.println("DEBUG: User email: " + email);
-        System.out.println("DEBUG: Converting " + request.getQuantity() + " " + request.getFrom() + 
-                           " to " + request.getTo());
-        
-        // 2. Proveri rolu korisnika
+        logger.info("Decoded email: {}", email);
+
         String role = getUserRole(email, authorizationHeader);
-        System.out.println("DEBUG: User role: " + role);
+        logger.info("User role: {}", role);
         
         if (!"USER".equals(role)) {
+            logger.error("Unauthorized role: {}", role);
             throw new UnauthorizedRoleException(
                 "Only USER role can perform currency conversion. Your role: " + role
             );
         }
-        
-        // 3. Dobij kurs za razmenu
+
+        if (quantity.compareTo(BigDecimal.valueOf(300.0)) > 0) {
+            throw new InvalidQuantityException(String.format("Quantity of %s is too large", quantity));
+        }
+
         CurrencyExchangeDto exchangeRate;
         try {
-            exchangeRate = proxy.getExchangeFeign(request.getFrom(), request.getTo()).getBody();
-            System.out.println("DEBUG: Exchange rate: " + exchangeRate.getExchangeRate());
+            exchangeRate = proxy.getExchangeFeign(from, to).getBody();
+            logger.info("Exchange rate: {}", exchangeRate.getExchangeRate());
         } catch (Exception e) {
+            logger.error("Failed to get exchange rate: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Cannot get exchange rate: " + e.getMessage());
         }
         
-        // 4. Pozovi exchange endpoint na bank-account servisu
         String exchangeUrl = bankAccountServiceUrl + "/bank-account/" + email + "/exchange" +
-                             "?fromCurrency=" + request.getFrom() +
-                             "&toCurrency=" + request.getTo() +
-                             "&amount=" + request.getQuantity() +
+                             "?fromCurrency=" + from +
+                             "&toCurrency=" + to +
+                             "&amount=" + quantity +
                              "&exchangeRate=" + exchangeRate.getExchangeRate();
         
-        System.out.println("DEBUG: Calling bank-account exchange: " + exchangeUrl);
+        logger.info("Calling bank-account service: {}", exchangeUrl);
         
         try {
-            // Pozovi bank-account servis
             ResponseEntity<Map> exchangeResponse = template.exchange(
                 exchangeUrl,
                 org.springframework.http.HttpMethod.POST,
@@ -164,14 +160,29 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
                 Map.class
             );
             
-            System.out.println("DEBUG: Bank-account response status: " + exchangeResponse.getStatusCode());
+            logger.info("Bank-account response status: {}", exchangeResponse.getStatusCode());
+            logger.info("=== TRANSACTION COMPLETED SUCCESSFULLY ===");
             
-            // 5. Vrati odgovor direktno iz bank-account servisa
-            return ResponseEntity.ok(exchangeResponse.getBody());
+            Map<String, Object> transactionResult = exchangeResponse.getBody();
+            
+            transactionResult.put("exchangeRate", exchangeRate.getExchangeRate());
+            transactionResult.put("fromCurrency", from);
+            transactionResult.put("toCurrency", to);
+            transactionResult.put("quantity", quantity);
+            
+            BigDecimal convertedAmount = quantity.multiply(exchangeRate.getExchangeRate());
+            transactionResult.put("convertedAmount", convertedAmount);
+            transactionResult.put("calculation", 
+                String.format("%s %s × %s = %s %s", 
+                    quantity, from,
+                    exchangeRate.getExchangeRate(),
+                    convertedAmount,
+                    to));
+            
+            return ResponseEntity.ok(transactionResult);
             
         } catch (HttpClientErrorException e) {
-            // Ako bank-account servis vrati grešku (npr. 400, 403, 404)
-            System.out.println("DEBUG: Bank-account error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+            logger.error("Bank-account HTTP error: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
             
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -188,15 +199,34 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
             }
             
         } catch (Exception e) {
-            System.out.println("DEBUG: Unexpected error: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Unexpected error: {}", e.getMessage(), e);
             
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Currency conversion failed: " + e.getMessage());
         }
     }
     
-    // Pomoćne metode
+    private ResponseEntity<?> calculateOnly(String from, String to, BigDecimal quantity) {
+        logger.info("=== CALCULATION ONLY (NO TRANSACTION) ===");
+        logger.info("Calculating: {} {} to {}", quantity, from, to);
+        
+        if (quantity.compareTo(BigDecimal.valueOf(300.0)) > 0) {
+            throw new InvalidQuantityException(String.format("Quantity of %s is too large", quantity));
+        }
+        
+        retry.executeSupplier(() -> response = proxy.getExchangeFeign(from, to).getBody());
+        
+        CurrencyConversionDto finalResponse = new CurrencyConversionDto(response, quantity);
+        finalResponse.setFeign(true);
+             
+        return ResponseEntity.ok(finalResponse);
+    }
+
+    public ResponseEntity<?> fallback(CallNotPermittedException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Currency conversion service is currently unavailable, Circuit is in OPEN state!");
+    }
+
     
     private String decodeEmail(String authHeader) {
         try {
@@ -207,15 +237,15 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
             String credentials = new String(Base64.getDecoder().decode(base64));
             return credentials.split(":", 2)[0];
         } catch (Exception e) {
+            logger.error("Error decoding email: {}", e.getMessage());
             return null;
         }
     }
     
     private String getUserRole(String email, String authHeader) {
         try {
-            String url = "http://localhost:8770/users/email?email=" + email;
+            String url = usersServiceUrl + "/users/email?email=" + email;
             
-            // Pošalji zahtev sa Authorization headerom
             ResponseEntity<UserDto> response = template.exchange(
                 url,
                 org.springframework.http.HttpMethod.GET,
@@ -224,68 +254,16 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
             );
             
             return response.getBody().getRole();
+            
+        } catch (HttpClientErrorException e) {
+            logger.error("Users service HTTP error: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return "ERROR";
         } catch (Exception e) {
+            logger.error("Error getting user role: {}", e.getMessage());
             return "ERROR";
         }
     }
-    /*
-    private BankAccountDto getBankAccount(String email, String authHeader) {
-        try {
-            String url = "http://localhost:8200/bank-account/" + email;
-            
-            ResponseEntity<BankAccountDto> response = template.exchange(
-                url,
-                org.springframework.http.HttpMethod.GET,
-                new org.springframework.http.HttpEntity<>(createHeaders(authHeader)),
-                BankAccountDto.class
-            );
-            
-            return response.getBody();
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot get bank account: " + e.getMessage());
-        }
-    }
     
-    private void updateBankAccount(String email, BankAccountDto account, String authHeader) {
-        try {
-            String url = "http://localhost:8200/bank-account/" + email;
-            
-            template.exchange(
-                url,
-                org.springframework.http.HttpMethod.PUT,
-                new org.springframework.http.HttpEntity<>(account, createHeaders(authHeader)),
-                BankAccountDto.class
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot update bank account: " + e.getMessage());
-        }
-    }
-    
-    private BigDecimal getAmountByCurrency(BankAccountDto account, String currency) {
-        if (currency == null) return BigDecimal.ZERO;
-        
-        switch (currency.toUpperCase()) {
-            case "USD": return account.getUsdAmount() != null ? account.getUsdAmount() : BigDecimal.ZERO;
-            case "EUR": return account.getEurAmount() != null ? account.getEurAmount() : BigDecimal.ZERO;
-            case "GBP": return account.getGbpAmount() != null ? account.getGbpAmount() : BigDecimal.ZERO;
-            case "CHF": return account.getChfAmount() != null ? account.getChfAmount() : BigDecimal.ZERO;
-            case "RSD": return account.getRsdAmount() != null ? account.getRsdAmount() : BigDecimal.ZERO;
-            default: return BigDecimal.ZERO;
-        }
-    }
-    
-    private void setAmountByCurrency(BankAccountDto account, String currency, BigDecimal amount) {
-        if (currency == null || amount == null) return;
-        
-        switch (currency.toUpperCase()) {
-            case "USD": account.setUsdAmount(amount); break;
-            case "EUR": account.setEurAmount(amount); break;
-            case "GBP": account.setGbpAmount(amount); break;
-            case "CHF": account.setChfAmount(amount); break;
-            case "RSD": account.setRsdAmount(amount); break;
-        }
-    }
-    */
     private org.springframework.http.HttpHeaders createHeaders(String authHeader) {
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Authorization", authHeader);

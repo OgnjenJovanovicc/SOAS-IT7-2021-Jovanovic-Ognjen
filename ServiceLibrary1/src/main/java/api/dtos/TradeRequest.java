@@ -6,16 +6,18 @@ public class TradeRequest {
     private String from;
     private String to;
     private BigDecimal amount;
+    private String tradeType; 
 
     public TradeRequest() {
     	
     }
     
-    public TradeRequest(String from, String to, BigDecimal amount) {
+    public TradeRequest(String from, String to, BigDecimal amount, String tradeType) {
 		super();
 		this.from = from;
 		this.to = to;
 		this.amount = amount;
+		this.tradeType=tradeType;
 	}
 
 
@@ -27,4 +29,12 @@ public class TradeRequest {
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
+
+	public String getTradeType() {
+		return tradeType;
+	}
+
+	public void setTradeType(String tradeType) {
+		this.tradeType = tradeType;
+	}
 }

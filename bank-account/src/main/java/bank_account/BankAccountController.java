@@ -100,7 +100,6 @@ public class BankAccountController {
         return ResponseEntity.ok(convertToDto(entity));
     }
 
-
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CreateBankAccountDto dto,
                                     @RequestHeader("Authorization") String authHeader) {
@@ -222,7 +221,6 @@ public class BankAccountController {
                     .body("Account not found");
         }
         
-        // Ažuriraj iznose
         if (dto.getUsdAmount() != null) entity.setUsdAmount(dto.getUsdAmount());
         if (dto.getEurAmount() != null) entity.setEurAmount(dto.getEurAmount());
         if (dto.getGbpAmount() != null) entity.setGbpAmount(dto.getGbpAmount());

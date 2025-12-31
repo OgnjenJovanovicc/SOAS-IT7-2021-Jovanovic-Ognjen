@@ -42,7 +42,7 @@ public class UserServiceImpl implements UsersService {
         UserModel requester = repo.findByEmail(email);
         
         if (requester == null || (!requester.getRole().equals("OWNER") && !requester.getRole().equals("ADMIN"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only ADMIN and OWNER cau use this service");
         }
         
         List<UserDto> dtos = new ArrayList<>();
@@ -51,41 +51,36 @@ public class UserServiceImpl implements UsersService {
         }
         return ResponseEntity.ok(dtos);
     }
-    
+   
     @Override
     @GetMapping("/email")
     public ResponseEntity<?> getUserByEmail(@RequestParam String email,
-                                           @RequestHeader("Authorization") String authorization) {
-
-        String requesterEmail = decoder.decodeHeader(authorization);
-        UserModel requester = repo.findByEmail(requesterEmail);
-
-        if (requester == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
-        }
-
-        if (requesterEmail.equals(email)) {
-            return ResponseEntity.ok(convertModelToDto(requester));
-        }
+                                           @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         UserModel target = repo.findByEmail(email);
         if (target == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
 
-        if (requester.getRole().equals("USER")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("USER can view only themselves");
-        }
-
-        if (requester.getRole().equals("ADMIN") && !target.getRole().equals("USER")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("ADMIN can view only USERs");
-        }
-
         return ResponseEntity.ok(convertModelToDto(target));
     }
-
+ /*   @GetMapping("/auth/{email}")
+    public ResponseEntity<?> getUserForAuth(@PathVariable String email) {
+        UserModel user = repo.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        return ResponseEntity.ok(convertModelToDto(user));
+    }*/
+    
+    @GetMapping("/auth")
+    public ResponseEntity<?> getUserForAuth(@RequestParam String email) {
+        UserModel user = repo.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        return ResponseEntity.ok(convertModelToDto(user));
+    }
 
 
     @Override

@@ -1,11 +1,14 @@
 package crypto_wallet;
+
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import api.dtos.CryptoWalletDto;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,7 +30,6 @@ public class CryptoWalletController {
 
     @GetMapping
     public ResponseEntity<?> getAll(@RequestHeader("Authorization") String authHeader) {
-
         String email = auth.decodeEmailFromAuthHeader(authHeader);
         String role = users.getUserRole(email, authHeader).block();
 
@@ -87,31 +89,65 @@ public class CryptoWalletController {
                     .body("Only USER can exchange own crypto");
         }
 
+        final String from = fromCrypto.toUpperCase();
+        final String to = toCrypto.toUpperCase();
+
         return repo.findByEmail(email).map(wallet -> {
 
-            if ("BTC".equals(fromCrypto) &&
-                wallet.getBtcAmount().compareTo(amount) < 0) {
-                return ResponseEntity.badRequest().body("Insufficient BTC funds");
+            BigDecimal currentFromAmount = getAmountByCrypto(wallet, from);
+            if (currentFromAmount.compareTo(amount) < 0) {
+                return ResponseEntity.badRequest()
+                        .body("Insufficient " + from + " funds. Available: " + currentFromAmount);
             }
 
-            if ("BTC".equals(fromCrypto)) {
-                wallet.setBtcAmount(
-                    wallet.getBtcAmount().subtract(amount)
-                );
-            }
+            BigDecimal newFromAmount = currentFromAmount.subtract(amount);
+            setAmountByCrypto(wallet, from, newFromAmount);
 
             BigDecimal converted = amount.multiply(exchangeRate);
 
-            if ("USDT".equals(toCrypto)) {
-                wallet.setUsdtAmount(
-                    wallet.getUsdtAmount().add(converted)
-                );
-            }
+            BigDecimal currentToAmount = getAmountByCrypto(wallet, to);
+            BigDecimal newToAmount = currentToAmount.add(converted);
+            setAmountByCrypto(wallet, to, newToAmount);
 
             repo.save(wallet);
-            return ResponseEntity.ok(toDto(wallet));
+
+            CryptoWalletDto walletDto = toDto(wallet);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("wallet", walletDto);
+            response.put("transaction", Map.of(
+                "from", from,
+                "to", to,
+                "amount", amount,
+                "exchangeRate", exchangeRate,
+                "convertedAmount", converted,
+                "newFromBalance", newFromAmount,
+                "newToBalance", newToAmount,
+                "message", String.format("Exchanged %s %s for %s %s", 
+                    amount, from, converted, to)
+            ));
+            
+            return ResponseEntity.ok(response);
 
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private BigDecimal getAmountByCrypto(CryptoWalletEntity wallet, String crypto) {
+        return switch (crypto.toUpperCase()) {
+            case "BTC" -> wallet.getBtcAmount();
+            case "ETH" -> wallet.getEthAmount();
+            case "USDT" -> wallet.getUsdtAmount();
+            default -> BigDecimal.ZERO;
+        };
+    }
+
+    private void setAmountByCrypto(CryptoWalletEntity wallet, String crypto, BigDecimal amount) {
+        switch (crypto.toUpperCase()) {
+            case "BTC" -> wallet.setBtcAmount(amount);
+            case "ETH" -> wallet.setEthAmount(amount);
+            case "USDT" -> wallet.setUsdtAmount(amount);
+            default -> throw new IllegalArgumentException("Unsupported crypto: " + crypto);
+        }
     }
 
     @PutMapping("/{email}")
@@ -147,7 +183,7 @@ public class CryptoWalletController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{email}")
+   @DeleteMapping("/{email}")
     public ResponseEntity<?> delete(
             @PathVariable String email,
             @RequestHeader("Authorization") String authHeader) {
@@ -175,8 +211,6 @@ public class CryptoWalletController {
 
     @PostMapping("/internal/create/{email}")
     public ResponseEntity<Void> internalCreate(@PathVariable String email) {
-
-
         if (repo.existsByEmail(email)) {
             return ResponseEntity.ok().build();
         }
@@ -190,12 +224,11 @@ public class CryptoWalletController {
 
     @DeleteMapping("/internal/delete/{email}")
     public ResponseEntity<Void> internalDelete(@PathVariable String email) {
-
         repo.findByEmail(email).ifPresent(repo::delete);
-
         System.out.println("→ Internal wallet deleted for: " + email);
         return ResponseEntity.ok().build();
     }
+    
     @PostMapping("/{email}/withdraw")
     public ResponseEntity<?> withdraw(
             @PathVariable String email,
@@ -214,29 +247,29 @@ public class CryptoWalletController {
         CryptoWalletEntity wallet = repo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
-        switch (currency.toUpperCase()) {
-            case "BTC" -> {
-                if (wallet.getBtcAmount().compareTo(amount) < 0)
-                    return ResponseEntity.badRequest().body("Insufficient BTC");
-                wallet.setBtcAmount(wallet.getBtcAmount().subtract(amount));
-            }
-            case "ETH" -> {
-                if (wallet.getEthAmount().compareTo(amount) < 0)
-                    return ResponseEntity.badRequest().body("Insufficient ETH");
-                wallet.setEthAmount(wallet.getEthAmount().subtract(amount));
-            }
-            case "USDT" -> {
-                if (wallet.getUsdtAmount().compareTo(amount) < 0)
-                    return ResponseEntity.badRequest().body("Insufficient USDT");
-                wallet.setUsdtAmount(wallet.getUsdtAmount().subtract(amount));
-            }
-            default -> {
-                return ResponseEntity.badRequest().body("Unsupported crypto");
-            }
+        currency = currency.toUpperCase();
+        
+        BigDecimal currentAmount = getAmountByCrypto(wallet, currency);
+        if (currentAmount.compareTo(amount) < 0) {
+            return ResponseEntity.badRequest()
+                    .body("Insufficient " + currency + ". Available: " + currentAmount);
         }
+        
+        BigDecimal newAmount = currentAmount.subtract(amount);
+        setAmountByCrypto(wallet, currency, newAmount);
 
         repo.save(wallet);
-        return ResponseEntity.ok(toDto(wallet));
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("wallet", toDto(wallet));
+        response.put("withdrawal", Map.of(
+            "currency", currency,
+            "amount", amount,
+            "newBalance", newAmount,
+            "message", "Withdrawn " + amount + " " + currency
+        ));
+        
+        return ResponseEntity.ok(response);
     }
     
     @PostMapping("/{email}/deposit")
@@ -257,17 +290,23 @@ public class CryptoWalletController {
         CryptoWalletEntity wallet = repo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
-        switch (currency.toUpperCase()) {
-            case "BTC" -> wallet.setBtcAmount(wallet.getBtcAmount().add(amount));
-            case "ETH" -> wallet.setEthAmount(wallet.getEthAmount().add(amount));
-            case "USDT" -> wallet.setUsdtAmount(wallet.getUsdtAmount().add(amount));
-            default -> {
-                return ResponseEntity.badRequest().body("Unsupported crypto");
-            }
-        }
+        currency = currency.toUpperCase();
+        BigDecimal currentAmount = getAmountByCrypto(wallet, currency);
+        BigDecimal newAmount = currentAmount.add(amount);
+        
+        setAmountByCrypto(wallet, currency, newAmount);
 
         repo.save(wallet);
-        return ResponseEntity.ok(toDto(wallet));
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("wallet", toDto(wallet));
+        response.put("deposit", Map.of(
+            "currency", currency,
+            "amount", amount,
+            "newBalance", newAmount,
+            "message", "Deposited " + amount + " " + currency
+        ));
+        
+        return ResponseEntity.ok(response);
     }
-
 }

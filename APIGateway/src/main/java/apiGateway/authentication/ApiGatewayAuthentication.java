@@ -1,6 +1,8 @@
 package apiGateway.authentication;
 
 
+import java.util.Base64;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,6 +18,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import api.dtos.UserDto;
+import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -31,27 +34,29 @@ public class ApiGatewayAuthentication {
 				
 				.pathMatchers("/currency-conversion").hasRole("USER")
 				.pathMatchers("/crypto-conversion").hasRole("USER")
-				
+				.pathMatchers(HttpMethod.GET,"/bank-account").hasAnyRole("ADMIN")
 				.pathMatchers(HttpMethod.POST,"/bank-account").hasAnyRole("ADMIN")
-				.pathMatchers("/bank-account").hasAnyRole("ADMIN","USER")
-				
+				.pathMatchers(HttpMethod.GET,"/bank-account/**").hasAnyRole("USER")
+				.pathMatchers("/bank-account/**").hasAnyRole("ADMIN","USER")
 				.pathMatchers(HttpMethod.PUT,"/bank-account/**").hasAnyRole("ADMIN")
 				.pathMatchers(HttpMethod.DELETE,"/bank-account/**").hasAnyRole("ADMIN")
-				
+				.pathMatchers(HttpMethod.GET,"/bank-account").hasAnyRole("ADMIN")
 				.pathMatchers(HttpMethod.POST,"/crypto-wallet").hasAnyRole("ADMIN")
 				.pathMatchers("/crypto-wallet").hasAnyRole("ADMIN","USER")
 				.pathMatchers(HttpMethod.POST,"/crypto-wallet").hasAnyRole("ADMIN")
 				.pathMatchers(HttpMethod.PUT,"/crypto-wallet/**").hasAnyRole("ADMIN")
 				.pathMatchers(HttpMethod.DELETE,"/crypto-wallet/**").hasAnyRole("ADMIN")
+				.pathMatchers(HttpMethod.GET,"/crypto-wallet/**").hasAnyRole("USER")
 				
 				.pathMatchers(HttpMethod.POST,"/users/newAdmin").hasRole("OWNER")
 				.pathMatchers("/users").hasAnyRole("ADMIN","OWNER")
 				.pathMatchers(HttpMethod.POST,"/users/newUser").hasAnyRole("OWNER","ADMIN")
 				.pathMatchers(HttpMethod.PUT,"/users/**").hasAnyRole("OWNER","ADMIN")
 				.pathMatchers(HttpMethod.DELETE,"/users/**").hasAnyRole("OWNER")
-				
-				.pathMatchers("/trade-exchange").hasAnyRole("USER")
-				.pathMatchers("/trade-conversion").hasAnyRole("USER")
+				.pathMatchers(HttpMethod.GET, "/users/**").hasAnyRole("USER")
+				.pathMatchers(HttpMethod.GET, "/users").hasAnyRole("ADMIN")
+				.pathMatchers("/trade/**").hasAnyRole("USER")
+				.pathMatchers("/trade/**").hasAnyRole("USER")
 				
 				).httpBasic(Customizer.withDefaults());
 		
@@ -59,28 +64,43 @@ public class ApiGatewayAuthentication {
 	}
 	
 	@Bean
-	ReactiveUserDetailsService reactiveUserDetailsService(WebClient.Builder webClientBuilder, BCryptPasswordEncoder encoder) {
-		//WebClient client = webClientBuilder.baseUrl("http://localhost:8770").build();
-		WebClient client = webClientBuilder.baseUrl("http://users-service:8770").build();	
-		return user -> client.get()
-				.uri(uriBuilder -> uriBuilder
-						.path("/users/email")
-						.queryParam("email", user)
-						.build()
-				)
-				.retrieve()
-				.bodyToMono(UserDto.class)
-				.map(dto -> User.withUsername(dto.getEmail())
-						//.password(encoder.encode(dto.getPassword()))
-						.password("{noop}" + dto.getPassword())
-						//.roles(dto.getRole())
-						.roles(dto.getRole())
-						.build()
-				);
-			
-		}
-		
+    ReactiveUserDetailsService reactiveUserDetailsService(WebClient.Builder webClientBuilder) {
+        WebClient client = webClientBuilder
+                .baseUrl("http://localhost:8770")
+                //.baseUrl("http://users-service:8770") // za Docker
+                .build();
 
+        return username -> {
+            return client.get()
+                   // .uri("/users/auth/{email}", username)
+            		.uri(uriBuilder -> uriBuilder
+                            .path("/users/auth")
+                            .queryParam("email", username)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(UserDto.class)
+                    .map(dto -> {
+                        String password = dto.getPassword();
+                        if (!password.startsWith("{") && !password.contains("}")) {
+                            password = "{noop}" + password;
+                        }
+                        
+                        return User.withUsername(dto.getEmail())
+                                .password(password)
+                                .roles(dto.getRole())
+                                .build();
+                    })
+                    .onErrorResume(e -> {
+                        System.err.println("Error fetching user for authentication: " + e.getMessage());
+                        return Mono.empty(); 
+                    });
+        };
+    }
+    
+    @Bean
+    ReactiveAuthenticationManager authenticationManager(ReactiveUserDetailsService userDetailsService) {
+        return new UserDetailsRepositoryReactiveAuthenticationManager(userDetailsService);
+    }
 	@Bean
 	BCryptPasswordEncoder getEncoder() {
 		return new BCryptPasswordEncoder();

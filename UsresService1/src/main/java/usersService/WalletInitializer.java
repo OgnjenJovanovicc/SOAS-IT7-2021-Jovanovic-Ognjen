@@ -1,53 +1,43 @@
 package usersService;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import api.proxies.CryptoWalletProxy;
 
 @Component
 public class WalletInitializer {
 
-    @Autowired
-    private UserRepository users;
+    private final UserRepository users;
+    private final CryptoWalletProxy walletProxy; 
 
-    @Autowired
-    private CryptoWalletClient walletClient;
+
+    public WalletInitializer(UserRepository users, CryptoWalletProxy walletProxy) {
+        this.users = users;
+        this.walletProxy = walletProxy;
+    }
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-
         System.out.println("Initializing CRYPTO wallets for existing USERS...");
 
         users.findAll().forEach(u -> {
-
             if ("USER".equals(u.getRole())) {
-
                 System.out.println("Creating crypto wallet for user: " + u.getEmail());
 
                 try {
-                    Boolean success = walletClient
-                            .createWallet(u.getEmail())
-                            .doOnError(e ->
-                                    System.err.println("✗ Crypto wallet error: " + e.getMessage())
-                            )
-                            .block();
+                    walletProxy.createWallet(u.getEmail());
+                    System.out.println("✓ Crypto wallet created for: " + u.getEmail());
 
-                    if (Boolean.TRUE.equals(success)) {
-                        System.out.println("✓ Crypto wallet created for: " + u.getEmail());
-                    } else {
-                        System.out.println("✗ Crypto wallet NOT created for: " + u.getEmail());
-                    }
-
-                    Thread.sleep(100);
+                    Thread.sleep(100); 
 
                 } catch (Exception e) {
-                    System.err.println("EXCEPTION creating crypto wallet: " + e.getMessage());
+                    System.err.println("✗ Crypto wallet error for " + u.getEmail() + ": " + e.getMessage());
                 }
             }
-
-        }); 
+        });
 
         System.out.println("Crypto wallet initialization completed.");
     }
 }
+

@@ -4,6 +4,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import api.dtos.CryptoWalletDto;
+import api.proxies.UserProxy;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -17,12 +18,12 @@ public class CryptoWalletController {
 
     private final CryptoWalletRepository repo;
     private final AuthDecoder auth;
-    private final UserSerivceClient users;
+    private final UserProxy users;
 
     public CryptoWalletController(
             CryptoWalletRepository repo,
             AuthDecoder auth,
-            UserSerivceClient users) {
+            UserProxy users) {
         this.repo = repo;
         this.auth = auth;
         this.users = users;
@@ -31,7 +32,7 @@ public class CryptoWalletController {
     @GetMapping
     public ResponseEntity<?> getAll(@RequestHeader("Authorization") String authHeader) {
         String email = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(email, authHeader).block();
+        String role = users.getUser(email, authHeader).getRole();
 
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -52,7 +53,7 @@ public class CryptoWalletController {
             @RequestHeader("Authorization") String authHeader) {
 
         String requesterEmail = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requesterEmail, authHeader).block();
+        String role = users.getUser(requesterEmail, authHeader).getRole();
 
         if ("OWNER".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -82,7 +83,7 @@ public class CryptoWalletController {
             @RequestHeader("Authorization") String authHeader) {
 
         String requesterEmail = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requesterEmail, authHeader).block();
+        String role = users.getUser(requesterEmail, authHeader).getRole();
 
         if (!"USER".equals(role) || !email.equals(requesterEmail)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -157,7 +158,7 @@ public class CryptoWalletController {
             @RequestHeader("Authorization") String authHeader) {
 
         String admin = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(admin, authHeader).block();
+        String role = users.getUser(admin, authHeader).getRole();
 
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -189,7 +190,7 @@ public class CryptoWalletController {
             @RequestHeader("Authorization") String authHeader) {
 
         String admin = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(admin, authHeader).block();
+        String role = users.getUser(admin, authHeader).getRole();
 
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -237,8 +238,8 @@ public class CryptoWalletController {
             @RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
-
+        //String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
         if (!"USER".equals(role) || !email.equals(requester)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only USER can withdraw from own wallet");
@@ -280,7 +281,7 @@ public class CryptoWalletController {
             @RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
 
         if (!"USER".equals(role) || !email.equals(requester)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

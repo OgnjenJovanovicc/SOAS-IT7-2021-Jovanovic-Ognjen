@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -46,5 +47,11 @@ public interface CryptoWalletProxy {
             @RequestParam BigDecimal fiatAmount,
             @RequestParam BigDecimal exchangeRate,
             @RequestHeader("Authorization") String auth);
+    
+    @PostMapping("/crypto-wallet/internal/create/{email}")
+    void createWallet(@PathVariable("email") String email);
+
+    @DeleteMapping("/crypto-wallet/internal/delete/{email}")
+    void deleteWallet(@PathVariable("email") String email);
 
 }

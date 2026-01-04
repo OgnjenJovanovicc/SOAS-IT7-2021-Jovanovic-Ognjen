@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 
 import api.dtos.BankAccountDto;
 import api.dtos.CreateBankAccountDto;
+import api.proxies.UserProxy;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +24,8 @@ public class BankAccountController {
     private BankAccountRepository repo;
 
     @Autowired
-    private UserServiceClient users;
+    private UserProxy users;
+   
 
     @Autowired
     private AuthDecoder auth;
@@ -56,8 +58,8 @@ public class BankAccountController {
     public ResponseEntity<?> getAll(@RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
-
+      //  String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only ADMIN can view all accounts");
@@ -77,8 +79,8 @@ public class BankAccountController {
 
      
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-
-        String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
+       //String role = users.getUserRole(requester, authHeader).block();
 
         if (!"USER".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -105,8 +107,8 @@ public class BankAccountController {
                                     @RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
-
+        //String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only ADMIN can create accounts");
@@ -161,8 +163,8 @@ public class BankAccountController {
                                     @RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
-
+       // String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only ADMIN can update bank accounts");
@@ -193,8 +195,8 @@ public class BankAccountController {
                                     @RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
-
+        //String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only ADMIN can delete bank accounts");
@@ -245,8 +247,8 @@ public class BankAccountController {
         if (requester == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
-        
-        String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
+       // String role = users.getUserRole(requester, authHeader).block();
         if (!"USER".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only USER or ADMIN can exchange currency");
@@ -296,8 +298,8 @@ public class BankAccountController {
             @RequestHeader("Authorization") String authHeader) {
         
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
-        
+        //String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
         if (!"USER".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only USER or ADMIN can withdraw");
@@ -339,7 +341,7 @@ public class BankAccountController {
             @RequestHeader("Authorization") String authHeader) {
 
         String requester = auth.decodeEmailFromAuthHeader(authHeader);
-        String role = users.getUserRole(requester, authHeader).block();
+        String role = users.getUser(requester, authHeader).getRole();
 
         if (!"USER".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

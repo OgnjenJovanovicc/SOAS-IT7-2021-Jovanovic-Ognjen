@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -45,4 +46,10 @@ public interface BankAccountProxy {
             @RequestParam BigDecimal amount,
             @RequestHeader("Authorization") String auth
     );
+    
+    @PostMapping("/bank-account/internal/create/{email}")
+    void createAccountForUser(@PathVariable("email") String email);
+
+    @DeleteMapping("/bank-account/internal/delete/{email}")
+    void deleteAccountForUser(@PathVariable("email") String email);
 }

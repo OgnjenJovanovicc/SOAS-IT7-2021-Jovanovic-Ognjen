@@ -1,4 +1,4 @@
-package usersService;
+/*package usersService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -47,5 +47,58 @@ public class AccountInitializer {
             }
         }
         System.out.println("Bank account initialization completed.");
+    }
+}
+*/
+package usersService;
+
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+import api.proxies.BankAccountProxy;
+import api.proxies.CryptoWalletProxy;
+
+import java.util.List;
+
+@Component
+public class AccountInitializer {
+
+    private final UserRepository userRepository;
+    private final BankAccountProxy bankAccountProxy; 
+    private final CryptoWalletProxy cryptoWalletProxy; 
+
+    public AccountInitializer(UserRepository userRepository,
+                              BankAccountProxy bankAccountProxy,
+                              CryptoWalletProxy cryptoWalletProxy) {
+        this.userRepository = userRepository;
+        this.bankAccountProxy = bankAccountProxy;
+        this.cryptoWalletProxy = cryptoWalletProxy;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeAccounts() {
+        System.out.println("Initializing bank accounts and crypto wallets for existing USERS...");
+
+        List<UserModel> users = userRepository.findAll();
+
+        for (UserModel user : users) {
+            if ("USER".equals(user.getRole())) {
+                try {
+                    System.out.println("Creating bank account for user: " + user.getEmail());
+                    bankAccountProxy.createAccountForUser(user.getEmail());
+                    System.out.println("✓ Bank account created for: " + user.getEmail());
+
+                    System.out.println("Creating crypto wallet for user: " + user.getEmail());
+                    cryptoWalletProxy.createWallet(user.getEmail());
+                    System.out.println("✓ Crypto wallet created for: " + user.getEmail());
+
+                    Thread.sleep(100); 
+                } catch (Exception e) {
+                    System.err.println("Error creating account/wallet for " + user.getEmail() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        System.out.println("Initialization completed.");
     }
 }

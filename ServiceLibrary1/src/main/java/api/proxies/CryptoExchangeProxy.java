@@ -8,13 +8,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import api.dtos.CryptoExchangeDto;
 
 
-@FeignClient(name = "crypto-exchange", url = "http://localhost:8400")
+@FeignClient(name = "crypto-exchange")
+//@FeignClient(name = "crypto-exchange",url="http://localhost:8400")
 public interface CryptoExchangeProxy {
 
     @GetMapping("/crypto-exchange")
     ResponseEntity<CryptoExchangeDto> getCryptoExchange(
-            @RequestParam String from,
-            @RequestParam String to);
+            @RequestParam (value="from") String from,
+            @RequestParam (value="to")String to);
     
 
 }

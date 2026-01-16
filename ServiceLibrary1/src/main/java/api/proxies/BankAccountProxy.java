@@ -10,46 +10,47 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "bank-account", url = "http://localhost:8200")
+//@FeignClient(name = "bank-account", url = "http://localhost:8200")
+@FeignClient(name = "bank-account")
 public interface BankAccountProxy {
 
     @PostMapping("/bank-account/{email}/exchange")
     Map<String, Object> exchange(
-            @PathVariable String email,
-            @RequestParam String fromCurrency,
-            @RequestParam String toCurrency,
-            @RequestParam BigDecimal amount,
-            @RequestParam BigDecimal exchangeRate,
+            @PathVariable(value="email") String email,
+            @RequestParam(value="fromCurrency") String fromCurrency,
+            @RequestParam(value="toCurrency") String toCurrency,
+            @RequestParam(value="amount") BigDecimal amount,
+            @RequestParam(value="exchangeRate") BigDecimal exchangeRate,
             @RequestHeader("Authorization") String auth);
     
     @PostMapping("/bank-account/{email}/trade-fiat-to-fiat")
     Map<String, Object> tradeFiatToFiat(
-            @PathVariable String email,
-            @RequestParam String fromCurrency,
-            @RequestParam String toCurrency,
-            @RequestParam BigDecimal amount,
-            @RequestParam BigDecimal exchangeRate,
+            @PathVariable(value="email") String email,
+            @RequestParam(value="fromCurrency") String fromCurrency,
+            @RequestParam(value="toCurrency") String toCurrency,
+            @RequestParam(value="amount") BigDecimal amount,
+            @RequestParam(value="exchangeRate") BigDecimal exchangeRate,
             @RequestHeader("Authorization") String auth);
     
     @PostMapping("/bank-account/{email}/withdraw")
     Map<String, Object> withdraw(
-            @PathVariable String email,
-            @RequestParam String currency,
-            @RequestParam BigDecimal amount,
+            @PathVariable(value="email") String email,
+            @RequestParam (value="currency")String currency,
+            @RequestParam(value="amount") BigDecimal amount,
             @RequestHeader("Authorization") String auth
     );
 
     @PostMapping("/bank-account/{email}/deposit")
     Map<String, Object> deposit(
-            @PathVariable String email,
-            @RequestParam String currency,
-            @RequestParam BigDecimal amount,
+            @PathVariable(value="email") String email,
+            @RequestParam (value="currency")String currency,
+            @RequestParam (value="amount")BigDecimal amount,
             @RequestHeader("Authorization") String auth
     );
     
     @PostMapping("/bank-account/internal/create/{email}")
-    void createAccountForUser(@PathVariable("email") String email);
+    void createAccountForUser(@PathVariable(value="email") String email);
 
     @DeleteMapping("/bank-account/internal/delete/{email}")
-    void deleteAccountForUser(@PathVariable("email") String email);
+    void deleteAccountForUser(@PathVariable(value="email") String email);
 }

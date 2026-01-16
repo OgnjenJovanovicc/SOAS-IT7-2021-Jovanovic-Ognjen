@@ -62,12 +62,12 @@ public class ApiGatewayAuthentication {
 		
 		return http.build();
 	}
-	
+
 	@Bean
     ReactiveUserDetailsService reactiveUserDetailsService(WebClient.Builder webClientBuilder) {
         WebClient client = webClientBuilder
-                .baseUrl("http://localhost:8770")
-                //.baseUrl("http://users-service:8770") // za Docker
+                //.baseUrl("http://localhost:8770")
+                .baseUrl("http://users-service:8770") // za Docker
                 .build();
 
         return username -> {

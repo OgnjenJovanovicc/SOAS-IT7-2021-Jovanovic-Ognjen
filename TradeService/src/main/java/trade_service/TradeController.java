@@ -30,9 +30,9 @@ public class TradeController {
     }
     @GetMapping
     public ResponseEntity<?> tradeGet(
-            @RequestParam String from,
-            @RequestParam String to,
-            @RequestParam BigDecimal amount,
+            @RequestParam(value="from") String from,
+            @RequestParam (value="to")String to,
+            @RequestParam (value="amount")BigDecimal amount,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         
         return service.tradeGet(from, to, amount, authorizationHeader);

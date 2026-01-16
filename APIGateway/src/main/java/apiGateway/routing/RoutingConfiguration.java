@@ -29,13 +29,13 @@ public class RoutingConfiguration {
                     .uri("lb://bank-account"))
             
             .route(p -> p.path("/currency-exchange/**")
-                    .uri("lb://currency-exchange1"))
+                    .uri("lb://currency-exchange"))
             
             .route(p -> p.path("/crypto-exchange/**")
                     .uri("lb://crypto-exchange"))
             
             .route(p -> p.path("/users/**")
-                    .uri("lb://users-service1"))
+                    .uri("lb://users-service"))
             
             .route("trade_service", r -> r
                     .path("/trade/**")
@@ -45,5 +45,3 @@ public class RoutingConfiguration {
             .build();
     }
 }
-
-

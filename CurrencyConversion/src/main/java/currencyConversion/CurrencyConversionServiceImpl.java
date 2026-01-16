@@ -58,9 +58,9 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
     @GetMapping("/currency-conversion")
     @CircuitBreaker(name = "cb", fallbackMethod = "fallback")
     public ResponseEntity<?> getConversion(
-            @RequestParam String from,
-            @RequestParam String to,
-            @RequestParam BigDecimal quantity,
+            @RequestParam(value="from")String from,
+            @RequestParam (value="to")String to,
+            @RequestParam(value="quantity") BigDecimal quantity,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         logger.info("GET /currency-conversion");
@@ -76,9 +76,9 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
     @GetMapping("/currency-conversion-feign")
     @CircuitBreaker(name = "cb", fallbackMethod = "fallback")
     public ResponseEntity<?> getConversionFeign(
-            @RequestParam String from,
-            @RequestParam String to,
-            @RequestParam BigDecimal quantity,
+            @RequestParam(value="from") String from,
+            @RequestParam(value="to") String to,
+            @RequestParam (value="quantity")BigDecimal quantity,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         logger.info("GET /currency-conversion-feign");

@@ -11,7 +11,7 @@
 	<groupId>soas.users-service</groupId>
 	<artifactId>UsersService</artifactId>
 	<version>1.0.0</version>
-	<name>UsresService1</name>
+	<name>users-service</name>
 	<description>Service containing User data necessary for authentification</description>
 	<url/>
 	<licenses>

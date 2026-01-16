@@ -46,9 +46,9 @@ public class CryptoConversionServiceImpl implements CryptoConversionService {
     @Override
     @GetMapping("/crypto-conversion")
     public ResponseEntity<?> getCryptoConversion(
-            @RequestParam String from,
-            @RequestParam String to,
-            @RequestParam BigDecimal amount,
+            @RequestParam(value="from") String from,
+            @RequestParam(value="to") String to,
+            @RequestParam (value="amount")BigDecimal amount,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         logger.info("GET /crypto-conversion");
@@ -63,9 +63,9 @@ public class CryptoConversionServiceImpl implements CryptoConversionService {
     @Override
     @GetMapping("/crypto-conversion-feign")
     public ResponseEntity<?> getCryptoConversionFeign(
-            @RequestParam String from,
-            @RequestParam String to,
-            @RequestParam BigDecimal amount,
+            @RequestParam(value="from") String from,
+            @RequestParam(value="to")  String to,
+            @RequestParam(value="amount") BigDecimal amount,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         logger.info("GET /crypto-conversion-feign");

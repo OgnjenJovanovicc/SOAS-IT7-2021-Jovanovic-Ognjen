@@ -73,10 +73,10 @@ public class TradeService {
     }
 
     public ResponseEntity<?> tradeGet(String from, String to, BigDecimal amount, String authHeader) {
-        if (authHeader == null) {
+     /*   if (authHeader == null) {
             return calculateTradeOnly(from, to, amount);
         }
-
+*/
         TradeRequest request = new TradeRequest();
         request.setFrom(from);
         request.setTo(to);
@@ -84,7 +84,7 @@ public class TradeService {
 
         return trade(request, authHeader);
     }
-
+/*
     private ResponseEntity<?> calculateTradeOnly(String from, String to, BigDecimal amount) {
         try {
             String fromUpper = from.toUpperCase();
@@ -158,7 +158,7 @@ public class TradeService {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
     }
-
+*/
     // ================= FIAT → CRYPTO =================
     private ResponseEntity<?> fiatToCrypto(
             String email,
@@ -240,7 +240,7 @@ public class TradeService {
             }
 
             if (!isSuccess(depositResult)) {
-                wallet.deposit(email, fromCrypto, amount, authHeader); 
+                //.deposit(email, fromCrypto, amount, authHeader); 
                 return error("Failed to deposit " + toFiat + " to bank", depositResult);
             }
 

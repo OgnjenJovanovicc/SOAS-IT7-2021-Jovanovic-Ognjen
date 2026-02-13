@@ -3,10 +3,13 @@ package crypto_wallet;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import api.dtos.BankAccountDto;
 import api.dtos.CryptoWalletDto;
 import api.proxies.UserProxy;
+import bank_account.BankAccountEntity;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +32,7 @@ public class CryptoWalletController {
         this.users = users;
     }
 
+
     @GetMapping
     public ResponseEntity<?> getAll(@RequestHeader("Authorization") String authHeader) {
         String email = auth.decodeEmailFromAuthHeader(authHeader);
@@ -38,12 +42,16 @@ public class CryptoWalletController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only ADMIN can view all wallets");
         }
-
+/*
         List<CryptoWalletDto> result = repo.findAll()
                 .stream()
                 .map(this::toDto)
-                .collect(Collectors.toList());
-
+                .collect(Collectors.toList());*/
+        
+        List<CryptoWalletDto>result=new ArrayList<>();
+        for (CryptoWalletEntity e : repo.findAll()) {
+            result.add(toDto(e));
+        }
         return ResponseEntity.ok(result);
     }
 

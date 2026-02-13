@@ -63,7 +63,7 @@ public class UserServiceImpl implements UsersService {
 
         return ResponseEntity.ok(convertModelToDto(target));
     }
-
+/*
     @GetMapping("/auth")
     public ResponseEntity<?> getUserForAuth(@RequestParam String email) {
         UserModel user = repo.findByEmail(email);
@@ -71,7 +71,7 @@ public class UserServiceImpl implements UsersService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
         return ResponseEntity.ok(convertModelToDto(user));
-    }
+    }*/
 
     @Override
     @PostMapping("/newAdmin")
@@ -100,9 +100,9 @@ public class UserServiceImpl implements UsersService {
     public ResponseEntity<?> createUser(@RequestBody UserDto dto,
                                         @RequestHeader("Authorization") String authorization) {
         String email = decoder.decodeHeader(authorization);
-        UserModel requester = repo.findByEmail(email);
+        UserModel user = repo.findByEmail(email);
 
-        if (requester == null || (!requester.getRole().equals("OWNER") && !requester.getRole().equals("ADMIN"))) {
+        if (user == null || (!user.getRole().equals("OWNER") && !user.getRole().equals("ADMIN"))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
         }
 

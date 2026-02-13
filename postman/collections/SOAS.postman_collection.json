@@ -1,0 +1,823 @@
+{
+  "info": {
+    "_postman_id": "5c96820f-a662-46a1-853d-07f0071f19d4",
+    "name": "SOAS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "CryptoExchange",
+      "id": "92066cae-07a1-40cc-b431-a551a6737bdb",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8400/crypto-exchange?from=ETH&to=USDT",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8400",
+          "path": [
+            "crypto-exchange"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "ETH"
+            },
+            {
+              "key": "to",
+              "value": "USDT"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetUsers",
+      "id": "18f4cbe8-5093-471d-89e4-64df2eea19ab",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8770/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8770",
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetUserByEmail",
+      "id": "64498027-0476-4f43-b4f7-275af812f9d2",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "user@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "passwprd",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8770/users/email?email=user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8770",
+          "path": [
+            "users",
+            "email"
+          ],
+          "query": [
+            {
+              "key": "email",
+              "value": "user@uns.ac.rs"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CreateAdmin",
+      "id": "a1a054ce-52a8-4713-800b-8f0aa31d9091",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "owner@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"test1234@uns.ac.rs\",\r\n    \"password\": \"password\",\r\n    \"role\": \"ADMIN\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8770/users/newAdmin",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8770",
+          "path": [
+            "users",
+            "newAdmin"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CreateUser",
+      "id": "4019c1d2-2105-4608-be21-f84d7927aba9",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"test@uns.ac.rs\",\r\n    \"password\": \"password\",\r\n    \"role\": \"USER\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8770/users/newUser",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8770",
+          "path": [
+            "users",
+            "newUser"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "UpdateUser",
+      "id": "1009f6b2-92f9-4963-90cd-f221e0817536",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "owner@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"test123456@uns.ac.rs\",\r\n    \"password\": \"password12345667\",\r\n    \"role\": \"USER\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8770/users?email=user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8770",
+          "path": [
+            "users"
+          ],
+          "query": [
+            {
+              "key": "email",
+              "value": "user@uns.ac.rs"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DeleteUser",
+      "id": "ae003267-d541-4875-af90-53d9812f1f7b",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "owner@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"test123456@uns.ac.rs\",\r\n    \"password\": \"password12345667\",\r\n    \"role\": \"OWNER\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8770/users?email=test@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8770",
+          "path": [
+            "users"
+          ],
+          "query": [
+            {
+              "key": "email",
+              "value": "test@uns.ac.rs"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CurrencyExchange",
+      "id": "c9734eb9-5adc-46b1-a6b7-03b3b5f4611b",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "owner@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "passwprd",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8000/currency-exchange?from=CHF&to=EUR",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8000",
+          "path": [
+            "currency-exchange"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "CHF"
+            },
+            {
+              "key": "to",
+              "value": "EUR"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetAllBankAccounts",
+      "id": "e9d898a0-115a-4946-9813-114e73925662",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8200/bank-account",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8200",
+          "path": [
+            "bank-account"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "getBankAccountByEmail",
+      "id": "cfcbe694-9a74-4034-9686-7d210012c1ce",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "user@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8200/bank-account/user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8200",
+          "path": [
+            "bank-account",
+            "user@uns.ac.rs"
+          ],
+          "query": [
+            {
+              "key": "e",
+              "value": null,
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "UpdateBankAccount",
+      "id": "7d70183f-03b8-4c43-a764-a4ee5e4782c5",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"usdAmount\": 100000,\r\n    \"eurAmount\": 5000,\r\n    \"rsdAmount\": 120000,\r\n    \"gbpAmount\": 10000,\r\n    \"chfAmount\": 10000\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8200/bank-account/user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8200",
+          "path": [
+            "bank-account",
+            "user@uns.ac.rs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DeleteBankAccount",
+      "id": "ed3dc61a-74ce-4dc3-a4c1-59d9664334c7",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8200/bank-account/testuser@example.com",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8200",
+          "path": [
+            "bank-account",
+            "testuser@example.com"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetAllCryptoWallets",
+      "id": "22dda0ae-89d8-4258-a7c6-a439adec61a9",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8300/crypto-wallet",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8300",
+          "path": [
+            "crypto-wallet"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetCryptoWalletByEmail",
+      "id": "e2e73f18-f9ad-4b40-8576-3a7909f5623e",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "user@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "localhost:8300/crypto-wallet/user@uns.ac.rs",
+          "host": [
+            "localhost"
+          ],
+          "port": "8300",
+          "path": [
+            "crypto-wallet",
+            "user@uns.ac.rs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DeleteCryptoWallet",
+      "id": "26d718a8-62a3-4b91-bf18-cb88e2627918",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8300/crypto-wallet/user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8300",
+          "path": [
+            "crypto-wallet",
+            "user@uns.ac.rs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "UpdateCryptoWallet",
+      "id": "c02ea2e9-94c3-4998-a1d9-4dce10735ea6",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"btcAmount\": 1,\r\n  \"ethAmount\": 5,\r\n  \"usdtAmount\": 10\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8300/crypto-wallet/user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8300",
+          "path": [
+            "crypto-wallet",
+            "user@uns.ac.rs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetCurrencyConversionByAPIGateway",
+      "id": "1d9666a1-375e-4090-8e1a-40e306159339",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "user@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8765/currency-conversion?from=USD&to=EUR&quantity=100",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8765",
+          "path": [
+            "currency-conversion"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "USD"
+            },
+            {
+              "key": "to",
+              "value": "EUR"
+            },
+            {
+              "key": "quantity",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetCryptoConversionByAPIGateway",
+      "id": "b1be70df-83e2-4b8b-9f39-7e22a23cdeff",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "user@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"from\": \"EUR\",\r\n    \"to\": \"RSD\",\r\n    \"quantity\":100\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8765/crypto-conversion?from=BTC&to=ETH&amount=1",
+          "host": [
+            "localhost"
+          ],
+          "port": "8765",
+          "path": [
+            "crypto-conversion"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "BTC"
+            },
+            {
+              "key": "to",
+              "value": "ETH"
+            },
+            {
+              "key": "amount",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GetTradeByAPIGateway",
+      "id": "95e06ed7-2b6e-4fd4-a845-d728c0b143cd",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "user@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8765/trade?from=USD&to=BTC&amount=200",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8765",
+          "path": [
+            "trade"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "USD"
+            },
+            {
+              "key": "to",
+              "value": "BTC"
+            },
+            {
+              "key": "amount",
+              "value": "200"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "id": "7cff8cc7-3e25-41e4-8689-de7e4af4e22b",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    }
+  ]
+}

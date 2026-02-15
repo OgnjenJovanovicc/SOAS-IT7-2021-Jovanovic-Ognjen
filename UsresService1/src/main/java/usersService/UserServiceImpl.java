@@ -63,7 +63,7 @@ public class UserServiceImpl implements UsersService {
 
         return ResponseEntity.ok(convertModelToDto(target));
     }
-/*
+
     @GetMapping("/auth")
     public ResponseEntity<?> getUserForAuth(@RequestParam String email) {
         UserModel user = repo.findByEmail(email);
@@ -71,7 +71,7 @@ public class UserServiceImpl implements UsersService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
         return ResponseEntity.ok(convertModelToDto(user));
-    }*/
+    }
 
     @Override
     @PostMapping("/newAdmin")

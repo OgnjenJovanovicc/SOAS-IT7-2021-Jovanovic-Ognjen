@@ -3,17 +3,14 @@ package crypto_wallet;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import api.dtos.BankAccountDto;
 import api.dtos.CryptoWalletDto;
 import api.proxies.UserProxy;
-import bank_account.BankAccountEntity;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/crypto-wallet")

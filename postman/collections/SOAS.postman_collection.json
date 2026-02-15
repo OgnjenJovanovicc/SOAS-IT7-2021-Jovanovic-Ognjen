@@ -78,13 +78,13 @@
           "type": "basic",
           "basic": [
             {
-              "key": "username",
-              "value": "user@uns.ac.rs",
+              "key": "password",
+              "value": "password",
               "type": "string"
             },
             {
-              "key": "password",
-              "value": "passwprd",
+              "key": "username",
+              "value": "user@uns.ac.rs",
               "type": "string"
             }
           ]
@@ -92,12 +92,12 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:8770/users/email?email=user@uns.ac.rs",
+          "raw": "http://localhost:8765/users/email?email=user@uns.ac.rs",
           "protocol": "http",
           "host": [
             "localhost"
           ],
-          "port": "8770",
+          "port": "8765",
           "path": [
             "users",
             "email"
@@ -105,7 +105,8 @@
           "query": [
             {
               "key": "email",
-              "value": "user@uns.ac.rs"
+              "value": "user@uns.ac.rs",
+              "uuid": "b008fab7-8f2c-4ac6-ac18-3b21bd2b7a72"
             }
           ]
         }
@@ -487,15 +488,15 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "http://localhost:8200/bank-account/testuser@example.com",
+          "raw": "http://localhost:8765/bank-account/ognjenuser@uns.ac.rs",
           "protocol": "http",
           "host": [
             "localhost"
           ],
-          "port": "8200",
+          "port": "8765",
           "path": [
             "bank-account",
-            "testuser@example.com"
+            "ognjenuser@uns.ac.rs"
           ]
         }
       },
@@ -572,42 +573,6 @@
       "response": []
     },
     {
-      "name": "DeleteCryptoWallet",
-      "id": "26d718a8-62a3-4b91-bf18-cb88e2627918",
-      "request": {
-        "auth": {
-          "type": "basic",
-          "basic": [
-            {
-              "key": "username",
-              "value": "admin@uns.ac.rs",
-              "type": "string"
-            },
-            {
-              "key": "password",
-              "value": "password",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "DELETE",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:8300/crypto-wallet/user@uns.ac.rs",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8300",
-          "path": [
-            "crypto-wallet",
-            "user@uns.ac.rs"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
       "name": "UpdateCryptoWallet",
       "id": "c02ea2e9-94c3-4998-a1d9-4dce10735ea6",
       "request": {
@@ -637,6 +602,42 @@
             }
           }
         },
+        "url": {
+          "raw": "http://localhost:8300/crypto-wallet/user@uns.ac.rs",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8300",
+          "path": [
+            "crypto-wallet",
+            "user@uns.ac.rs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DeleteCryptoWallet",
+      "id": "26d718a8-62a3-4b91-bf18-cb88e2627918",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "admin@uns.ac.rs",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
         "url": {
           "raw": "http://localhost:8300/crypto-wallet/user@uns.ac.rs",
           "protocol": "http",
@@ -815,7 +816,10 @@
       "id": "7cff8cc7-3e25-41e4-8689-de7e4af4e22b",
       "request": {
         "method": "GET",
-        "header": []
+        "header": [],
+        "url": {
+          "raw": ""
+        }
       },
       "response": []
     }
